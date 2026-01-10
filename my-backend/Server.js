@@ -10,7 +10,10 @@ const port = 3001;
 
 const jwtSecret = process.env.JWT_SECRET;
 
-
+if (!jwtSecret) {
+  console.error("JWT_SECRET is not defined!");
+  process.exit(1); // stops the server so you don’t run with undefined JWT secret
+}
 
 app.use(
   cors({
