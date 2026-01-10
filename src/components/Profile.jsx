@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import ProfileDetails from "./ProfileDetails";
 import ProfileProfile from "./ProfileProfile";
 import ProfileAccountDetails from "./ProfileAccountDetails";
+import { useParams } from "react-router-dom";
 
 const Profile = () => {
+  const { leadId } = useParams();
   const [showDetails, setShowDetails] = useState(true);
 
   const toggleDetails = () => {
@@ -15,35 +17,36 @@ const Profile = () => {
 
   return (
     <div className="  h-full ml-300 mt-0 px-4">
-      <header className="bg-blue-100 shadow mb-4">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 ">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Details & profile
-          </h1>
-        </div>
-      </header>
-      <div className="border-gray border-l border-t-4 border-r-4 border-b-4 pt-6">
+      <div className="border-gray border-l bg-blue-200 border-t-4 border-r-4 border-b-4 pt-6">
         <div className="w-full h-full  border-gray-400">
-          <div className="flex ">
+          <div className="flex ml-5">
             <div
-              className={`w-20 h-10 border rounded border-gray-500 p-2 cursor-pointer ${
-                showDetails ? "bg-blue-500 text-white" : ""
-              }`}
+              className={`w-20 h-10 border mr-5 rounded border-gray-500 p-2 cursor-pointer 
+    transition-all duration-150 select-none
+    ${showDetails ? "bg-blue-500 text-white" : "bg-blue-200 text-black"} 
+    active:scale-95 active:bg-blue-600`}
               onClick={toggleDetails}
             >
               Details
             </div>
-            <div
-              className={`w-20 h-10 border rounded border-gray-500 p-2 cursor-pointer ${
-                !showDetails ? "bg-blue-500 text-white" : ""
-              }`}
-              onClick={toggleProfile}
-            >
-              Profile
-            </div>
+
+           <div
+  className={`w-20 h-10 border rounded border-gray-500 p-2 cursor-pointer
+    transition-all duration-150 select-none
+    ${!showDetails ? "bg-blue-500 text-white" : "bg-blue-200 text-black"}
+    active:scale-95 active:bg-blue-600`}
+  onClick={toggleProfile}
+>
+  Profile
+</div>
+
           </div>
-          {showDetails ? <ProfileDetails /> : <ProfileProfile />}
-          <ProfileAccountDetails/>
+          {showDetails ? (
+            <ProfileProfile leadId={leadId} />
+          ) : (
+            <ProfileDetails leadId={leadId} />
+          )}
+          <ProfileAccountDetails />
         </div>
       </div>
     </div>

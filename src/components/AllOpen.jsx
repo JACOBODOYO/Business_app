@@ -19,9 +19,16 @@ export default function AllOpen() {
         setLeads(sortedData);
 
         const today = new Date().toISOString().split("T")[0];
+
+        const normalizeDate = (dateString) => {
+          if (!dateString) return null;
+          return new Date(dateString).toISOString().split("T")[0];
+        };
+
         const dueToday = sortedData.filter(
-          (lead) => lead.next_followup === today
+          (lead) => normalizeDate(lead.next_followup) === today
         );
+
         setDueTodayLeads(dueToday);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -59,6 +66,7 @@ export default function AllOpen() {
         </select>{" "}
         entries
       </p>
+
       <div className="flex justify-end mb-4">
         <p className="mr-2">Search</p>
         <input
@@ -69,162 +77,126 @@ export default function AllOpen() {
           onChange={handleSearch}
         />
       </div>
-      <div className="bg-gray-800 h-96 overflow-auto">
+
+      <div className="h-96 overflow-auto">
         <table className="min-w-full divide-y divide-gray-200 h-100 w-100">
-          <thead className="bg-gray-50">
+          <thead className="bg-blue-500 text-white">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="hidden px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 #
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Company
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Title
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wwider">
                 Phone
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Mail
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Address
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Deal Stage
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Product
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Tags
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Interest
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Probability
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Username
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Next Followup
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Next Activity
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Amount
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Amount Paid
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                Balance
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+
+          <tbody className="divide-y divide-gray-200">
             {filteredLeads.map((lead) => (
-              <tr key={lead.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-blue-800">
+              <tr key={lead.id} className="hover:bg-gray-200">
+                <td className="hidden px-6 py-4 whitespace-nowrap text-blue-800">
                   {lead.id}
                 </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  <Link to={`/profile/${lead.id}`}>{lead.company}</Link>{" "}
+
+                <td className="px-6 py-4 whitespace-nowrap text-blue-800">
+                  <Link to={`/profile/${lead.id}`}>{lead.company}</Link>
                 </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.title}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.phone}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.mail}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.address}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.title}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.phone}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.mail}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.address}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
                   {lead.deal_stage}
                 </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.product}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.tags}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.interest}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.product}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.tags}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.interest}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
                   {lead.probability}
                 </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.username}
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.username}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
+                  
+                  <p>{new Date(lead.next_followup).toLocaleDateString()}</p>
+
                 </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.next_followup}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
+
+                <td className="px-6 py-4 whitespace-nowrap">
                   {lead.next_activity}
                 </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
-                  {lead.amount}
-                </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap text-blue-800
-                "
-                >
+
+                <td className="px-6 py-4 whitespace-nowrap">{lead.amount}</td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
                   {lead.amount_paid}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {lead.amount - lead.amount_paid}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {/*{dueTodayLeads && <DueToday leads={dueTodayLeads} />} {/* Ensure dueTodayLeads is passed */}
+
+      {dueTodayLeads && <DueToday leads={dueTodayLeads} />}
     </div>
   );
 }

@@ -3,32 +3,34 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const XLSX = require("xlsx");
+const twilio = require("twilio");
 require("dotenv").config();
 
 const app = express();
 const port = 3001;
-
 const jwtSecret = process.env.JWT_SECRET;
 
-if (!jwtSecret) {
-  console.error("JWT_SECRET is not defined!");
-  process.exit(1); // stops the server so you don’t run with undefined JWT secret
-}
+// Multer setup for file uploads
+const upload = multer({ dest: "uploads/" });
 
+// Middleware
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
       "https://jacobodoyo.github.io",
       "https://business-kd766ajis-jacobodoyos-projects.vercel.app",
-      'https://business-app-lac.vercel.app',
-    ], // Replace with your React app's URL
+      "https://business-app-lac.vercel.app",
+    ],
     credentials: true,
   })
 );
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// PostgreSQL pool setup
+// PostgreSQL connection pool
 const pool = new Pool({
   user: "postgres",
   host: "localhost",
@@ -37,48 +39,73 @@ const pool = new Pool({
   port: 5432,
 });
 
-const plainPassword = "5657";
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioApiKey = process.env.TWILIO_API_KEY;
+const twilioApiSecret = process.env.TWILIO_API_SECRET;
 
-// Hash the password
-bcrypt.hash(plainPassword, 10, (err, hash) => {
-  if (err) {
-    console.error("Error hashing password:", err);
-  } else {
-    console.log("Hashed Password:", hash);
+const client = twilio(accountSid, authToken);
 
-    // Compare the password
-    bcrypt.compare(plainPassword, hash, (err, result) => {
-      if (err) {
-        console.error("Error comparing password:", err);
-      } else {
-        console.log("Password Match Result:", result); // Should log 'true'
-      }
-    });
+// ---------------------- AUTH ----------------------
+app.post("/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const result = await pool.query("SELECT * FROM admin WHERE email = $1", [
+      email,
+    ]);
+    const user = result.rows[0];
+
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, {
+        expiresIn: "1h",
+      });
+      res.json({ loginStatus: true, token });
+    } else {
+      res.json({ loginStatus: false, error: "Invalid credentials" });
+    }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 });
 
-async function rehashAndStorePassword(email, plainPassword) {
-  try {
-    const hashedPassword = await bcrypt.hash(plainPassword, 10);
-    console.log("New Hashed Password:", hashedPassword);
+app.post("/followups", async (req, res) => {
+  const { lead_id, followup_type, notes, next_action_date } = req.body;
 
-    // Update the database with the new hashed password
-    await pool.query("UPDATE admin SET password = $1 WHERE email = $2", [
-      hashedPassword,
-      email,
-    ]);
-    console.log("Password updated in the database.");
+  try {
+    const result = await pool.query(
+      `INSERT INTO followups (lead_id, followup_type, notes, next_action_date)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [lead_id, followup_type, notes, next_action_date]
+    );
+
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error("Error rehashing and storing password:", error);
+    console.error(error);
+    res.status(500).json({ error: "Error saving follow-up" });
   }
+});
+
+
+// Middleware to verify JWT
+function authenticateToken(req, res, next) {
+  const token = req.headers["authorization"];
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, jwtSecret, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
 }
 
-rehashAndStorePassword("jacob@konekt.com", "5657");
+// ---------------------- LEADS ----------------------
 
-// Endpoint to fetch leads
+// Get all leads
 app.get("/leads", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM leads");
+    const result = await pool.query("SELECT * FROM leads ORDER BY company ASC");
     res.json(result.rows);
   } catch (err) {
     console.error(err.message);
@@ -86,7 +113,7 @@ app.get("/leads", async (req, res) => {
   }
 });
 
-// Endpoint to fetch a lead by ID
+// Get a specific lead by ID
 app.get("/leads/:leadId", async (req, res) => {
   const { leadId } = req.params;
   try {
@@ -94,9 +121,9 @@ app.get("/leads/:leadId", async (req, res) => {
       leadId,
     ]);
     if (result.rows.length > 0) {
-      res.json(result.rows[0]); // Return the first matching lead
+      res.json(result.rows[0]);
     } else {
-      res.status(404).json({ error: "Lead not found" }); // Return 404 if not found
+      res.status(404).json({ error: "Lead not found" });
     }
   } catch (err) {
     console.error(err.message);
@@ -104,63 +131,206 @@ app.get("/leads/:leadId", async (req, res) => {
   }
 });
 
-app.post("/auth/login", async (req, res) => {
-  const { email, password } = req.body;
+app.get("/followups/:lead_id", async (req, res) => {
+  const { lead_id } = req.params;
 
   try {
-    const result = await pool.query("SELECT * FROM admin WHERE email = $1", [
-      email,
-    ]);
-    const user = result.rows[0];
+    const result = await pool.query(
+      `SELECT * FROM followups
+       WHERE lead_id = $1
+       ORDER BY created_at DESC`,
+      [lead_id]
+    );
 
-    if (user) {
-      console.log("User found:", user);
-
-      // Log the plain password and the hashed password
-      console.log("Entered Password:", password);
-      console.log("Stored Hashed Password:", user.password);
-
-      const match = await bcrypt.compare(password, user.password);
-
-      console.log("Password Match Result:", match); // Log the result of the password comparison
-
-      if (match) {
-        // Create a JWT
-        const token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, {
-          expiresIn: "1h",
-        });
-        res.json({ loginStatus: true, token });
-      } else {
-        res.json({ loginStatus: false, error: "Invalid credentials" });
-      }
-    } else {
-      res.json({ loginStatus: false, error: "User not found" });
-    }
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error fetching follow-ups" });
   }
 });
 
-// Middleware to verify JWT
-function authenticateToken(req, res, next) {
-  const token = req.headers["authorization"];
+// Endpoint to generate Twilio capability token
+app.get("/token", (req, res) => {
+  try {
+    const { identity } = req.query; // agent username or ID
+    if (!identity) return res.status(400).json({ error: "Identity is required" });
 
-  if (!token) return res.sendStatus(401);
+    const AccessToken = twilio.jwt.AccessToken;
+    const VoiceGrant = AccessToken.VoiceGrant;
 
-  jwt.verify(token, jwtSecret, (err, user) => {
-    if (err) return res.sendStatus(403);
+    // Create an access token
+    const token = new AccessToken(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_API_KEY,
+      process.env.TWILIO_API_SECRET,
+      { identity } // the agent's identity
+    );
 
-    req.user = user;
-    next();
-  });
-}
+    // Grant access to Twilio Voice
+    const voiceGrant = new VoiceGrant({
+      outgoingApplicationSid: process.env.TWILIO_TWIML_APP_SID, // your TwiML App SID
+      incomingAllow: true, // allow incoming calls
+    });
 
-// Protected route example
-app.get("/protected", authenticateToken, (req, res) => {
-  res.json({ message: "This is a protected route", user: req.user });
+    token.addGrant(voiceGrant);
+
+    // Return JWT to client
+    res.json({ token: token.toJwt() });
+  } catch (error) {
+    console.error("Error generating Twilio token:", error);
+    res.status(500).json({ error: "Failed to generate Twilio token" });
+  }
 });
 
+
+
+// Add a single lead
+app.post("/leads", async (req, res) => {
+  const {
+    company,
+    title,
+    phone,
+    mail,
+    address,
+    deal_stage,
+    product,
+    tags,
+    interest,
+    probability,
+    username,
+    next_followup,
+    next_activity,
+    amount,
+    amount_paid,
+    account_open_date,
+    CUST_ID,
+  } = req.body;
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO leads
+      (company, title, phone, mail, address, deal_stage, product, tags, interest, probability, username, next_followup, next_activity, amount, amount_paid, account_open_date, CUST_ID)
+      VALUES
+      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+      RETURNING *`,
+      [
+        company,
+        title,
+        phone,
+        mail,
+        address,
+        deal_stage,
+        product,
+        tags,
+        interest || 0,
+        probability || 0,
+        username,
+        next_followup,
+        next_activity,
+        amount || 0,
+        amount_paid || 0,
+        account_open_date || new Date(),
+        CUST_ID || null,
+      ]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding lead:", err);
+    res.status(500).json({ error: "Failed to add lead" });
+  }
+});
+
+// Bulk upload leads from Excel
+app.post("/leads/bulk", upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  try {
+    const workbook = XLSX.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    const insertValues = rows.map((row) => [
+      row.Company || "",
+      row.Name || "",
+      row.Phone || "",
+      row.Mail || "",
+      row.Address || "",
+      row.DealStage || "",
+      row.Product || "",
+      row.Tags || "",
+      row.Interest || 0,
+      row.Probability || 0,
+      row.Username || "",
+      row.NextFollowup || "",
+      row.NextActivity || "",
+      row.Amount || 0,
+      row.AmountPaid || 0,
+      row.AccountOpenDate || new Date(),
+      row.CUST_ID || null,
+    ]);
+
+    const queryText = `
+      INSERT INTO leads
+      (company, title, phone, mail, address, deal_stage, product, tags, interest, probability, username, next_followup, next_activity, amount, amount_paid, account_open_date, CUST_ID)
+      VALUES
+      ${insertValues.map(
+        (_, i) =>
+          `(${Array(17)
+            .fill(0)
+            .map((__, j) => `$${i * 17 + j + 1}`)
+            .join(",")})`
+      )}
+      RETURNING *`;
+
+    const flatValues = insertValues.flat();
+
+    const result = await pool.query(queryText, flatValues);
+
+    res.status(201).json({ message: "Leads uploaded successfully", count: result.rowCount });
+  } catch (error) {
+    console.error("Error uploading leads:", error);
+    res.status(500).json({ error: "Failed to upload leads" });
+  }
+});
+
+// ---------------------- NOTES ----------------------
+app.post("/notes", async (req, res) => {
+  const { lead_id, text } = req.body;
+
+  if (!lead_id || !text) {
+    return res.status(400).json({ error: "Lead ID and text are required" });
+  }
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO notes (lead_id, content) VALUES ($1, $2) RETURNING *",
+      [lead_id, text]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Failed to save note:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
+// Get notes for a lead
+app.get("/notes/:leadId", async (req, res) => {
+  const { leadId } = req.params;
+  try {
+    const result = await pool.query(
+      "SELECT * FROM notes WHERE lead_id = $1 ORDER BY created_at ASC",
+      [leadId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ---------------------- SERVER ----------------------
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
