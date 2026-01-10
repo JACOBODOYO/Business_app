@@ -3,6 +3,11 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+<<<<<<< HEAD
+=======
+const multer = require("multer");
+const XLSX = require("xlsx");
+>>>>>>> 1c9b57a (Remove Twilio and clean repository history)
 require("dotenv").config();
 
 const app = express();
@@ -34,6 +39,7 @@ const pool = new Pool({
   port: 5432,
 });
 
+<<<<<<< HEAD
 const plainPassword = "5657";
 
 // Hash the password
@@ -42,6 +48,9 @@ bcrypt.hash(plainPassword, 10, (err, hash) => {
     console.error("Error hashing password:", err);
   } else {
     console.log("Hashed Password:", hash);
+=======
+
+>>>>>>> 1c9b57a (Remove Twilio and clean repository history)
 
     // Compare the password
     bcrypt.compare(plainPassword, hash, (err, result) => {
