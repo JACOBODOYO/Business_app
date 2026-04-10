@@ -25,22 +25,7 @@ const sms = africasTalking.SMS;
 
 module.exports = africasTalking
 
-function formatKenyanNumber(phone) {
-  // remove spaces
-  let num = phone.replace(/\s/g, "");
 
-  // convert 07XXXXXXXX → +2547XXXXXXXX
-  if (num.startsWith("0")) {
-    num = "+254" + num.substring(1);
-  }
-
-  // convert 2547XXXXXXXX → +2547XXXXXXXX
-  if (num.startsWith("254")) {
-    num = "+" + num;
-  }
-
-  return num;
-}
 
 
 // Middleware
