@@ -1,0 +1,52 @@
+import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
+import Header from "./components/Header";
+import SideBar from "./components/SideBar";
+import DashBoard from "./components/DashBoard";
+import LeadsManagement from "./components/LeadsManagement";
+import SearchLeads from "./components/SearchLeads";
+import DeleteLeads from "./components/DeleteLeads";
+import AllOpen from "./components/AllOpen";
+import DueToday from "./components/DueToday";
+import Profile from "./components/Profile";
+import Login from "./components/Login";
+import Users from "./components/Users";
+import Reports from "./components/Reports";
+
+function AppContent() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/";
+
+  return (
+    <div className="flex h-screen">
+      {!isLoginPage && <SideBar />}
+      <div className={`flex-1 ${!isLoginPage ? "ml-[13.6667%] mt-0 pl-4 w-[85.333%]" : ""}`}>
+        {/* {!isLoginPage && <Header />} */}
+        <Routes >
+          <Route path="/" element={<Login />} />
+          <Route path="/dashboard" element={<DashBoard />} />
+          <Route path="/leads-management" element={<LeadsManagement />} />
+          <Route path="/search-leads" element={<SearchLeads />} />
+          <Route path="/send-reports" element={<Users />} />
+          <Route path="/delete-leads" element={<DeleteLeads />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/all-open" element={<AllOpen />}></Route>
+          <Route path="/due-today" element={<DueToday />}></Route>
+          
+          <Route path="/profile/:leadId" element={<Profile />} />
+          
+
+        </Routes>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Router basename="/Business_app">
+      <AppContent />
+    </Router>
+  );
+}
+
+export default App;
