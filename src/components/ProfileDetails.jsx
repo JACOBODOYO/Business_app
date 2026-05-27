@@ -16,6 +16,7 @@ export default function ProfileDetails({ leadId }) {
   const [reminderData, setReminderData] = useState(null);
   const [notes, setNotes] = useState([]);
   const [followUps, setFollowUps] = useState([]);
+  const [refreshPTP, setRefreshPTP] = useState(false);
 
   // Fetch lead details
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function ProfileDetails({ leadId }) {
         <FollowUp addFollowUp={addFollowUp} />
 
         {/* Promise to Pay */}
-        <PromiseToPay />
+        <PromiseToPay leadId={leadId} onSaved={() => setRefreshPTP(prev => !prev)} />
 
         {/* Follow-up History */}
         <div className="col-span-2 bg-white border-b-4 border-blue-400 rounded-[10px] p-3">
@@ -100,7 +101,7 @@ export default function ProfileDetails({ leadId }) {
             ))
           )}
         </div>
-        <PromiseToPayHistory leadId={leadId} />
+        <PromiseToPayHistory leadId={leadId} refresh={refreshPTP}/>
 
         {/* Collection Update */}
         <div className="row-start-3 bg-white rounded-[10px] p-3 border-b-4 border-blue-400">

@@ -17,7 +17,7 @@ const Login = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
     axios
-      .post("http://localhost:3001/auth/login", values)
+      .post(`${import.meta.env.VITE_API_URL}/auth/login`, values)
       .then((result) => {
         if (result.data.loginStatus) {
           const token = result.data.token;
@@ -44,7 +44,7 @@ const Login = () => {
     <div className="flex flex-row justify-center items-center min-h-screen bg-blue-500">
       <div className="p-3 rounded w-25 border  bg-gray-300">
         <div className="text-danger">{error && error}</div>
-        <h2 className="mb-3 text-red-400">Konekt</h2>
+        <h2 className="mb-3 text-red-400">JAMATEL</h2>
         <form
           onSubmit={handleSubmit}
           className="space-y-4 p-6 rounded shadow-md w-full max-w-md"

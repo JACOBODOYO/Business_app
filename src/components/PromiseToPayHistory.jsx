@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-export default function PromiseToPayHistory({ leadId }) {
+export default function PromiseToPayHistory({ leadId,refresh }) {
   const [ptpList, setPtpList] = useState([]);
 
   useEffect(() => {
     fetchPTP();
-  }, [leadId]);
+  }, [leadId, refresh]);
 
   const fetchPTP = async () => {
     try {
@@ -44,7 +44,7 @@ export default function PromiseToPayHistory({ leadId }) {
           {ptpList.map((ptp) => (
             <tr key={ptp.id} className="border-t">
               <td className="p-2">{ptp.amount}</td>
-              <td className="p-2">{ptp.promise_date}</td>
+              <td className="p-2">{new Date(ptp.promise_date).toLocaleDateString()}</td>
               <td className="p-2">
                 <span
                   className={`px-2 py-1 rounded text-white text-xs ${

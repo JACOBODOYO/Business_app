@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
+import { HashRouter  as Router, Route, Routes, useLocation } from "react-router-dom";
 import Header from "./components/Header";
 import SideBar from "./components/SideBar";
 import DashBoard from "./components/DashBoard";
@@ -43,7 +43,7 @@ function AppContent() {
 
 function App() {
   return (
-    <Router basename="/Business_app">
+    <Router >
       <AppContent />
     </Router>
   );

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 
-export default function PromiseToPay({ leadId }) {
+export default function PromiseToPay({ leadId, onSaved }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
 
@@ -27,6 +27,7 @@ export default function PromiseToPay({ leadId }) {
 
       setAmount("");
       setDate("");
+      onSaved();
     } catch (error) {
       console.error("Error saving PTP:", error);
     }

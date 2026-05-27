@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import MonthlyPaymentReports from "./MonthlyPaymentReports";
+import PromiseToPayReport from "./PromiseToPayReport";
 
 export default function Reports() {
   const [reportData, setReportData] = useState({
@@ -85,6 +86,7 @@ export default function Reports() {
       </button>
 
     <MonthlyPaymentReports />
+    <PromiseToPayReport/>
     </div>
   );
 }

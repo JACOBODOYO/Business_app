@@ -10,7 +10,15 @@ const MonthlyPaymentReports = () => {
 
   const fetchPayments = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/reports/monthly-payments");
+      const token = localStorage.getItem("token");
+      
+      const res = await axios.get("http://localhost:3001/reports/monthly-payments",
+        {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+      );
       const grouped = groupByMonth(res.data);
       setGroupedData(grouped);
     } catch (err) {
