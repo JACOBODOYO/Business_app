@@ -8,7 +8,7 @@ const XLSX = require("xlsx");
 require("dotenv").config();
 const path = require("path");
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 const jwtSecret = process.env.JWT_SECRET;
 
 // Multer setup for file uploads
@@ -25,7 +25,22 @@ const sms = africasTalking.SMS;
 
 module.exports = africasTalking
 
+function formatKenyanNumber(phone) {
+  // remove spaces
+  let num = phone.replace(/\s/g, "");
 
+  // convert 07XXXXXXXX → +2547XXXXXXXX
+  if (num.startsWith("0")) {
+    num = "+254" + num.substring(1);
+  }
+
+  // convert 2547XXXXXXXX → +2547XXXXXXXX
+  if (num.startsWith("254")) {
+    num = "+" + num;
+  }
+
+  return num;
+}
 
 
 // Middleware
@@ -34,7 +49,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      //"https://jacobodoyo.github.io",
+      "https://jacobodoyo.github.io",
+      "https://jacobodoyo.github.io/Business_app",
       //"https://business-kd766ajis-jacobodoyos-projects.vercel.app",
       //"https://business-app-lac.vercel.app",
     ],
@@ -46,11 +62,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // PostgreSQL connection pool
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "postgres",
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: 5432,
+  port: process.env.DB_PORT,
+  
 });
 
 
@@ -1033,3 +1050,4 @@ app.get("/notes/:leadId", async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
