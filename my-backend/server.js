@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { Pool } = require("pg");
+
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
@@ -61,14 +61,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // PostgreSQL connection pool
-const { Pool } = require("pg");
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
 });
+
 
 
 // ---------------------- AUTH ----------------------
