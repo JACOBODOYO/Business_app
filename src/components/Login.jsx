@@ -1,6 +1,11 @@
-import axios from "axios";
+import { createClient } from "@supabase/supabase-js";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const Login = () => {
   const [values, setValues] = useState({
@@ -10,35 +15,62 @@ const Login = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const invalidEmailEnterd = values.email !== '' && !values.email.includes('@')
+  console.log("LOGIN ERROR:", error);
 
+  // axios.defaults.withCredentials = true;
 
-  axios.defaults.withCredentials = true;
+  // const handleSubmit = (event) => {
+  //   event.preventDefault();
 
-  const handleSubmit = (event) => {
+  //   if (!values.email || !values.password) {
+  //     setError("Email and password are required");
+  //     return;
+  //   }
+  //   axios
+  //     .post(`${import.meta.env.VITE_API_URL}/auth/login`, values)
+  //     .then((result) => {
+  //       if (result.data.loginStatus) {
+  //         const token = result.data.token;
+  //         localStorage.setItem("token", token);
+
+  //         // attempt to decode JWT payload to store user info (id, role)
+  //         try {
+  //           const payload = JSON.parse(atob(token.split(".")[1]));
+  //           localStorage.setItem("user", JSON.stringify({ id: payload.id, role: payload.role, email: payload.email }));
+  //         } catch (e) {
+  //           // ignore decode errors
+  //         }
+
+  //         navigate("/dashboard");
+  //       } else {
+  //         setError(result.data.error);
+  //       }
+  //     })
+  //     .catch((err) => console.log(err));
+
+  // };
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    axios
-      .post(`${import.meta.env.VITE_API_URL}/auth/login`, values)
-      .then((result) => {
-        if (result.data.loginStatus) {
-          const token = result.data.token;
-          localStorage.setItem("token", token);
 
-          // attempt to decode JWT payload to store user info (id, role)
-          try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            localStorage.setItem("user", JSON.stringify({ id: payload.id, role: payload.role, email: payload.email }));
-          } catch (e) {
-            // ignore decode errors
-          }
+    if (!values.email || !values.password) {
+      setError("Email and password are required");
+      return;
+    }
 
-          navigate("/dashboard");
-        } else {
-          setError(result.data.error);
-        }
-      })
-      .catch((err) => console.log(err));
-      
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    localStorage.setItem("token", data.session.access_token);
+    navigate("/dashboard");
   };
+
 
   return (
     <div className="flex flex-row justify-center items-center min-h-screen bg-blue-500">
@@ -77,7 +109,9 @@ const Login = () => {
               className="form-control h-10 rounded-0 text-black p-2 hover:cursor-pointer"
             />
 
-            <button className="flex flex-col justify-center items-center mt-5 bg-blue-300 h-10 w-100 rounded-0 mb-2">
+            <button
+              disabled={!values.email || !values.password}
+              className="flex flex-col justify-center items-center mt-5 bg-blue-300 h-10 w-100 rounded-0 mb-2">
               Log in
             </button>
           </div>

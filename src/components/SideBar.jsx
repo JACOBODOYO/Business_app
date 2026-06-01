@@ -1,19 +1,35 @@
+import React, { useEffect, useState } from "react";
+
 import { Link } from "react-router-dom";
-import React from "react";
+import { supabase } from "../lib/supabase";
 
 export default function SideBar() {
-  // Get user role from token
-  const token = localStorage.getItem("token");
-  let userRole = "user"; // default
+  const [userRole, setUserRole] = useState("user");
 
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1])); // decode JWT payload
-      userRole = payload.role; // "admin" or "user"
-    } catch (err) {
-      console.error("Invalid token", err);
+  useEffect(() => {
+    async function loadUserRole() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: profile, error } = await supabase
+        .from("users")
+        .select("role")
+        .eq("email", user.email)
+        .single();
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      setUserRole(profile?.role || "user");
     }
-  }
+
+    loadUserRole();
+  }, []);
 
   return (
     <div className="flex h-screen">

@@ -1,15 +1,18 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { Pool } = require("pg");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const supabase = require("./lib/supabase");
+// const { Pool } = require("pg");
+//const bcrypt = require("bcrypt");
+//const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const XLSX = require("xlsx");
-require("dotenv").config();
+//const decoded = jwt.decode(token);
+
 const path = require("path");
 const app = express();
 const port = process.env.PORT || 3001;
-const jwtSecret = process.env.JWT_SECRET;
+//const jwtSecret = process.env.JWT_SECRET;
 
 // Multer setup for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -61,115 +64,113 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: {
+//     rejectUnauthorized: false,
+//   },
+// });
 
 
 // ---------------------- AUTH ----------------------
-app.post("/auth/login", async (req, res) => {
-  const { email, password } = req.body;
+// app.post("/auth/login", async (req, res) => {
+//   const { email, password } = req.body;
 
-  try {
-    // Helper to check if a column exists on a table
-    const hasColumn = async (table, col) => {
-      const r = await pool.query(
-        `SELECT column_name FROM information_schema.columns WHERE table_name=$1 AND column_name=$2`,
-        [table, col]
-      );
-      return r.rows.length > 0;
-    };
+//   try {
 
-    let user = null;
+//     // Login using Supabase Auth
+//     const { data, error } =
+//       await supabase.auth.signInWithPassword({
+//         email,
+//         password,
+//       });
 
-    // Try admin table only if it has an email or name column
-    const adminHasEmail = await hasColumn('admin', 'email');
-    const adminHasName = await hasColumn('admin', 'name');
+//     if (error) {
+//       return res.status(401).json({
+//         loginStatus: false,
+//         error: error.message,
+//       });
+//     }
 
-    if (adminHasEmail) {
-      const result = await pool.query(
-        "SELECT id, email, password, 'admin' AS role FROM admin WHERE email = $1",
-        [email]
-      );
-      user = result.rows[0];
-    } else if (adminHasName) {
-      const result = await pool.query(
-        "SELECT id, name as email, password, 'admin' AS role FROM admin WHERE name = $1",
-        [email]
-      );
-      user = result.rows[0];
-    }
+//     // Get extra user details from your users table
+//     const { data: profile, error: profileError } =
+//       await supabase
+//         .from("users")
+//         .select("*")
+//         .eq("email", email)
+//         .single();
 
-    // If not found in admin, try users table (check available columns first)
-    if (!user) {
-      const usersHasEmail = await hasColumn('users', 'email');
-      const usersHasName = await hasColumn('users', 'name');
+//     if (profileError) {
+//       console.error(profileError);
+//     }
 
-      if (usersHasEmail) {
-        const result = await pool.query(
-          "SELECT id, email, password, role FROM users WHERE email = $1",
-          [email]
-        );
-        user = result.rows[0];
-      } else if (usersHasName) {
-        const result = await pool.query(
-          "SELECT id, name as email, password, role FROM users WHERE name = $1",
-          [email]
-        );
-        user = result.rows[0];
-      }
-    }
+//     res.json({
+//       loginStatus: true,
+//       token: data.session.access_token,
+//       user: {
+//         id: data.user.id,
+//         email: data.user.email,
+//         role: profile?.role || "user",
+//         name: profile?.name || "",
+//       },
+//     });
 
-    if (
-      user &&
-      user.password &&
-      (await bcrypt.compare(password, user.password))
-    ) {
-      const token = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-          role: user.role || "user",
-        },
-        jwtSecret,
-        { expiresIn: "1h" }
-      );
+//   } catch (err) {
+//     console.error(err);
 
-      res.json({ loginStatus: true, token });
-    } else {
-      res.json({ loginStatus: false, error: "Invalid credentials" });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
-  }
-});
+//     res.status(500).json({
+//       loginStatus: false,
+//       error: "Server error",
+//     });
+//   }
+// });
 
 app.post("/users", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Forbidden: only admins can add users" });
-  }
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password || !role) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const { name, email, password, role } = req.body;
 
-    const result = await pool.query(
-      "INSERT INTO users (name, email, password, role) VALUES ($1,$2,$3,$4) RETURNING id, name, email, role",
-      [name, email, hashedPassword, role]
-    );
+    // Create auth user
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
 
-    res.status(201).json(result.rows[0]);
+    if (authError) {
+      return res.status(400).json({
+        error: authError.message,
+      });
+    }
+
+    // Save extra profile data
+    const { data, error } = await supabase
+      .from("users")
+      .insert([
+        {
+          id: authData.user.id,
+          name,
+          email,
+          role,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({
+        error: error.message,
+      });
+    }
+
+    res.status(201).json(data);
+
   } catch (err) {
-    console.error("Error creating user:", err);
-    res.status(500).json({ error: "Failed to create user" });
+    console.error(err);
+
+    res.status(500).json({
+      error: "Failed to create user",
+    });
   }
 });
 
@@ -178,37 +179,62 @@ app.post("/followups", async (req, res) => {
   const { lead_id, followup_type, notes, next_action_date } = req.body;
 
   try {
-    const result = await pool.query(
-      `INSERT INTO followups (lead_id, followup_type, notes, next_action_date)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [lead_id, followup_type, notes, next_action_date]
-    );
+    const { data, error } = await supabase
+      .from("followups")
+      .insert([
+        {
+          lead_id,
+          followup_type,
+          notes,
+          next_action_date,
+        },
+      ])
+      .select()
+      .single();
 
-    res.json(result.rows[0]);
+    if (error) throw error;
+
+    res.json(data);
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error saving follow-up" });
+
+    res.status(500).json({
+      error: "Error saving follow-up",
+    });
   }
 });
 
-app.post("/payments", async (req, res) => {
+app.post("/payments", authenticateToken, async (req, res) => {
   const { lead_id, amount, payment_date, notes } = req.body;
 
   try {
 
-    const result = await pool.query(
-      `INSERT INTO payments (lead_id, amount, payment_date, notes)
-       VALUES ($1,$2,$3,$4)
-       RETURNING *`,
-      [lead_id, amount, payment_date, notes]
-    );
+    const { data, error } = await supabase
+      .from("payments")
+      .insert([
+        {
+          lead_id,
+          amount,
+          payment_date,
+          notes,
+        },
+      ])
+      .select()
+      .single();
 
-    res.json(result.rows[0]);
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error");
+
+    res.status(500).json({
+      error: "Server error",
+    });
   }
 });
 
@@ -267,19 +293,41 @@ app.post("/make-call", async (req, res) => {
 
 
 // Middleware to verify JWT
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader) return res.sendStatus(401);
+async function authenticateToken(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
 
-  const token = authHeader.split(" ")[1]; // remove "Bearer"
+    if (!authHeader) {
+      return res.status(401).json({ error: "No token provided" });
+    }
 
-  if (!token) return res.sendStatus(401);
+    const token = authHeader.split(" ")[1];
 
-  jwt.verify(token, jwtSecret, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      return res.status(403).json({ error: "Invalid token" });
+    }
+
+    // get role from YOUR users table (not auth table)
+    const { data: adminUser } = await supabase
+      .from("admin")
+      .select("*")
+      .eq("email", data.user.email)
+      .single();
+
+    req.user = {
+      id: data.user.id,
+      email: data.user.email,
+      role: adminUser ? "admin" : "user",
+    };
+
     next();
-  });
+    console.log(req.user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Authentication failed" });
+  }
 }
 
 
@@ -288,21 +336,31 @@ function authenticateToken(req, res, next) {
 // Get all leads
 app.get("/leads", authenticateToken, async (req, res) => {
   try {
-    let result;
 
-    if (req.user.role === "admin") {
-      result = await pool.query("SELECT * FROM leads ORDER BY id DESC");
-    } else {
-      result = await pool.query(
-        "SELECT * FROM leads WHERE assigned_to = $1 ORDER BY id DESC",
-        [req.user.id]
-      );
+    let query = supabase
+      .from("leads")
+      .select("*")
+      .order("id", { ascending: false });
+
+    // non-admin only sees assigned leads
+    if (req.user.role !== "admin") {
+      query = query.eq("cust_id", req.user.id);
     }
 
-    res.json(result.rows);
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch leads" });
+
+    res.status(500).json({
+      error: "Failed to fetch leads",
+    });
   }
 });
 
@@ -313,28 +371,29 @@ app.get("/leads/:leadId", async (req, res) => {
 
   try {
 
-    const result = await pool.query(
-      `
-      SELECT 
-        leads.*,
-        users.name AS agent_name
-      FROM leads
-      LEFT JOIN users 
-      ON leads.assigned_to = users.id
-      WHERE leads.id = $1
-      `,
-      [leadId]
-    );
+    const { data, error } = await supabase
+      .from("leads")
+      .select(`
+        *,
+        users(name)
+      `)
+      .eq("id", leadId)
+      .single();
 
-    if (result.rows.length > 0) {
-      res.json(result.rows[0]);
-    } else {
-      res.status(404).json({ error: "Lead not found" });
+    if (error) {
+      return res.status(404).json({
+        error: "Lead not found",
+      });
     }
 
+    res.json(data);
+
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+    console.error(err);
+
+    res.status(500).json({
+      error: "Server error",
+    });
   }
 });
 
@@ -342,43 +401,73 @@ app.get("/followups/:lead_id", async (req, res) => {
   const { lead_id } = req.params;
 
   try {
-    const result = await pool.query(
-      `SELECT * FROM followups
-       WHERE lead_id = $1
-       ORDER BY created_at DESC`,
-      [lead_id]
-    );
 
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from("followups")
+      .select("*")
+      .eq("lead_id", lead_id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error fetching follow-ups" });
+
+    res.status(500).json({
+      error: "Error fetching follow-ups",
+    });
   }
 });
 
 // Get all users (Admin only ideally)
 app.get("/users", authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT id, name, email, role FROM users ORDER BY id DESC"
-    );
-    res.json(result.rows);
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, name, email, role")
+      .order("id", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
+
   } catch (err) {
-    console.error("Error fetching users:", err);
-    res.status(500).json({ error: "Failed to fetch users" });
+    console.error(err);
+
+    res.status(500).json({
+      error: "Failed to fetch users",
+    });
   }
 });
 
 app.get("/clients", authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT DISTINCT company 
-      FROM leads
-      WHERE company IS NOT NULL
-      AND TRIM(company) <> ''
-      ORDER BY company ASC
-    `);
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from("leads")
+      .select("company")
+      .not("company", "is", null)
+      .order("company", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const uniqueCompanies = [
+      ...new Map(
+        data
+          .filter(item => item.company?.trim() !== "")
+          .map(item => [item.company, item])
+      ).values()
+    ];
+
+    res.json(uniqueCompanies);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -387,83 +476,124 @@ app.get("/clients", authenticateToken, async (req, res) => {
 
 app.get("/monthly-collections", async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        users.name,
-        SUM(leads.amount_paid) AS total_collected
-      FROM leads
-      JOIN users ON users.id = leads.assigned_to
-      WHERE DATE_TRUNC('month', leads.payment_date) = DATE_TRUNC('month', CURRENT_DATE)
-      GROUP BY users.name
-      ORDER BY total_collected DESC
-    `);
 
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from("leads")
+      .select(`
+        amount_paid,
+        payment_date,
+        users(name)
+      `);
+
+    if (error) throw error;
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    const grouped = {};
+
+    data.forEach((lead) => {
+      if (!lead.payment_date) return;
+
+      const paymentDate = new Date(lead.payment_date);
+
+      if (
+        paymentDate.getMonth() === currentMonth &&
+        paymentDate.getFullYear() === currentYear
+      ) {
+        const name = lead.users?.name || "Unknown";
+
+        grouped[name] =
+          (grouped[name] || 0) + Number(lead.amount_paid || 0);
+      }
+    });
+
+    const result = Object.entries(grouped).map(([name, total]) => ({
+      name,
+      total_collected: total,
+    }));
+
+    result.sort((a, b) => b.total_collected - a.total_collected);
+
+    res.json(result);
+
   } catch (error) {
-    console.error("Error fetching monthly collections:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error(error);
+
+    res.status(500).json({
+      error: "Server error",
+    });
   }
 });
 
 app.get("/dashboard-summary", async (req, res) => {
   try {
 
-    const portfolio = await pool.query(`
-      SELECT 
-        SUM(amount) AS total_portfolio,
-        SUM(amount_paid) AS total_collected
-      FROM leads
-    `)
+    const { data: leads, error } = await supabase
+      .from("leads")
+      .select("*");
 
-    const today = await pool.query(`
-      SELECT SUM(amount_paid) AS today_collections
-      FROM leads
-      WHERE payment_date = CURRENT_DATE
-    `)
+    if (error) throw error;
 
-    const users = await pool.query(`
-      SELECT users.name, SUM(leads.amount_paid) AS collected
-      FROM leads
-      JOIN users ON users.id = leads.assigned_to
-      GROUP BY users.name
-      ORDER BY collected DESC
-    `)
+    const total_portfolio = leads.reduce(
+      (sum, lead) => sum + Number(lead.amount || 0),
+      0
+    );
 
-    const daily = await pool.query(`
-      SELECT payment_date, SUM(amount_paid) AS total
-      FROM leads
-      WHERE payment_date IS NOT NULL
-      GROUP BY payment_date
-      ORDER BY payment_date
-    `)
+    const total_collected = leads.reduce(
+      (sum, lead) => sum + Number(lead.amount_paid || 0),
+      0
+    );
+
+    const todayDate = new Date().toISOString().split("T")[0];
+
+    const today_collections = leads
+      .filter((lead) => lead.payment_date === todayDate)
+      .reduce((sum, lead) => sum + Number(lead.amount_paid || 0), 0);
 
     res.json({
-      portfolio: portfolio.rows[0],
-      today: today.rows[0],
-      users: users.rows,
-      daily: daily.rows
-    })
+      portfolio: {
+        total_portfolio,
+        total_collected,
+      },
+      today: {
+        today_collections,
+      },
+    });
 
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: "Server error" })
+
+    console.error(err);
+
+    res.status(500).json({
+      error: "Server error",
+    });
+
   }
-})
+});
 
 app.get("/recent-payments", async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT title, amount_paid, payment_date
-      FROM leads
-      WHERE payment_date IS NOT NULL
-      ORDER BY payment_date DESC
-      LIMIT 5
-    `);
 
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from("leads")
+      .select("title, amount_paid, payment_date")
+      .not("payment_date", "is", null)
+      .order("payment_date", { ascending: false })
+      .limit(5);
+
+    if (error) throw error;
+
+    res.json(data);
+
   } catch (error) {
-    console.error("Error fetching recent payments:", error);
-    res.status(500).json({ error: "Server error" });
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Server error",
+    });
+
   }
 });
 
@@ -473,41 +603,74 @@ app.get("/payments/:leadId", async (req, res) => {
 
   try {
 
-    const result = await pool.query(
-      `SELECT * FROM payments
-       WHERE lead_id=$1
-       ORDER BY payment_date DESC`,
-      [leadId]
-    );
+    const { data, error } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("payment_date", { ascending: false });
 
-    res.json(result.rows);
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
 
   } catch (err) {
+
     console.error(err);
-    res.status(500).send("Server error");
+
+    res.status(500).json({
+      error: "Server error",
+    });
+
   }
 });
-
 app.get("/dashboard/top-collectors", async (req, res) => {
   try {
+    // 1. Get payments + linked leads (assigned user)
+    const { data, error } = await supabase
+      .from("payments")
+      .select(`
+        amount,
+        leads (
+          assigned_to,
+          users (
+            id,
+            name
+          )
+        )
+      `);
 
-    const result = await pool.query(`
-      SELECT 
-        users.id,
-        users.name,
-        COALESCE(SUM(payments.amount),0) AS total_collected,
-        COALESCE(SUM(leads.amount_paid),0) AS total
-      FROM users
-      LEFT JOIN leads
-        ON leads.assigned_to = users.id
-      LEFT JOIN payments
-        ON payments.lead_id = leads.id
-      GROUP BY users.id
-      ORDER BY total DESC
-      LIMIT 5
-    `);
+    if (error) throw error;
 
-    res.json(result.rows);
+    // 2. Aggregate in JS
+    const map = {};
+
+    data.forEach((p) => {
+      const user = p.leads?.users;
+
+      if (!user) return;
+
+      const userId = user.id;
+      const userName = user.name;
+
+      if (!map[userId]) {
+        map[userId] = {
+          id: userId,
+          name: userName,
+          total_collected: 0,
+        };
+      }
+
+      map[userId].total_collected += Number(p.amount || 0);
+    });
+
+    // 3. Convert to array + sort
+    const result = Object.values(map)
+      .sort((a, b) => b.total_collected - a.total_collected)
+      .slice(0, 5);
+
+    res.json(result);
 
   } catch (error) {
     console.error(error);
@@ -519,44 +682,53 @@ app.get("/leads/:leadId/activity", async (req, res) => {
   const { leadId } = req.params;
 
   try {
+    // 1. Payments
+    const { data: payments, error: payErr } = await supabase
+      .from("payments")
+      .select("payment_date, amount")
+      .eq("lead_id", leadId);
 
-    const payments = await pool.query(
-      `SELECT 
-        payment_date AS date,
-        'payment' AS type,
-        amount,
-        'Payment received' AS description
-       FROM payments
-       WHERE lead_id = $1`,
-      [leadId]
-    );
+    if (payErr) throw payErr;
 
-    const followups = await pool.query(
-      `SELECT 
-        next_action_date AS date,
-        'followup' AS type,
-        notes AS description
-       FROM followups
-       WHERE lead_id = $1`,
-      [leadId]
-    );
+    // 2. Followups
+    const { data: followups, error: followErr } = await supabase
+      .from("followups")
+      .select("next_action_date, notes")
+      .eq("lead_id", leadId);
 
-    const notes = await pool.query(
-      `SELECT 
-        created_at AS date,
-        'note' AS type,
-        content AS description
-       FROM notes
-       WHERE lead_id = $1`,
-      [leadId]
-    );
+    if (followErr) throw followErr;
 
+    // 3. Notes
+    const { data: notes, error: notesErr } = await supabase
+      .from("notes")
+      .select("created_at, content")
+      .eq("lead_id", leadId);
+
+    if (notesErr) throw notesErr;
+
+    // 4. Normalize into unified activity timeline
     const activity = [
-      ...payments.rows,
-      ...followups.rows,
-      ...notes.rows
+      ...(payments || []).map((p) => ({
+        date: p.payment_date,
+        type: "payment",
+        amount: p.amount,
+        description: "Payment received",
+      })),
+
+      ...(followups || []).map((f) => ({
+        date: f.next_action_date,
+        type: "followup",
+        description: f.notes,
+      })),
+
+      ...(notes || []).map((n) => ({
+        date: n.created_at,
+        type: "note",
+        description: n.content,
+      })),
     ];
 
+    // 5. Sort newest first
     activity.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     res.json(activity);
@@ -569,15 +741,30 @@ app.get("/leads/:leadId/activity", async (req, res) => {
 
 app.get("/dashboard/ptp-today", async (req, res) => {
   try {
+    const today = new Date().toISOString().split("T")[0];
 
-    const result = await pool.query(`
-      SELECT leads.id, leads.company, promise_to_pay.amount, promise_to_pay.promise_date
-      FROM promise_to_pay
-      JOIN leads ON leads.id = promise_to_pay.lead_id
-      WHERE promise_to_pay.promise_date = CURRENT_DATE
-    `);
+    const { data, error } = await supabase
+      .from("promise_to_pay")
+      .select(`
+        amount,
+        promise_date,
+        leads (
+          id,
+          company
+        )
+      `)
+      .eq("promise_date", today);
 
-    res.json(result.rows);
+    if (error) throw error;
+
+    const result = (data || []).map((ptp) => ({
+      id: ptp.leads?.id,
+      company: ptp.leads?.company,
+      amount: ptp.amount,
+      promise_date: ptp.promise_date,
+    }));
+
+    res.json(result);
 
   } catch (err) {
     console.error(err);
@@ -586,98 +773,186 @@ app.get("/dashboard/ptp-today", async (req, res) => {
 });
 
 app.get("/dashboard/broken-ptp", async (req, res) => {
-
   try {
+    const today = new Date().toISOString().split("T")[0];
 
-    const result = await pool.query(`
-      SELECT leads.id, leads.company, promise_to_pay.promise_date, promise_to_pay.amount
-      FROM promise_to_pay
-      JOIN leads ON leads.id = promise_to_pay.lead_id
-      WHERE promise_to_pay.promise_date < CURRENT_DATE
-      AND promise_to_pay.status != 'paid'
-    `);
+    const { data, error } = await supabase
+      .from("promise_to_pay")
+      .select(`
+        amount,
+        promise_date,
+        status,
+        leads (
+          id,
+          company
+        )
+      `)
+      .lt("promise_date", today)
+      .neq("status", "paid");
 
-    res.json(result.rows);
+    if (error) throw error;
+
+    const result = (data || []).map((ptp) => ({
+      id: ptp.leads?.id,
+      company: ptp.leads?.company,
+      amount: ptp.amount,
+      promise_date: ptp.promise_date,
+    }));
+
+    res.json(result);
 
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
   }
-
 });
 
 app.get("/dashboard/no-contact", async (req, res) => {
-
   try {
+    const { data, error } = await supabase
+      .from("followups")
+      .select(`
+        lead_id,
+        next_action_date,
+        leads (
+          id,
+          company
+        )
+      `);
 
-    const result = await pool.query(`
-      SELECT leads.id, leads.company, MAX(followups.next_action_date) AS last_contact
-      FROM leads
-      LEFT JOIN followups ON leads.id = followups.lead_id
-      GROUP BY leads.id
-      HAVING MAX(followups.next_action_date) < CURRENT_DATE - INTERVAL '7 days'
-      OR MAX(followups.next_action_date) IS NULL
-      LIMIT 10
-    `);
+    if (error) throw error;
 
-    res.json(result.rows);
+    const map = {};
+
+    data.forEach((f) => {
+      const lead = f.leads;
+      if (!lead) return;
+
+      const leadId = lead.id;
+
+      const date = f.next_action_date
+        ? new Date(f.next_action_date)
+        : null;
+
+      if (!map[leadId]) {
+        map[leadId] = {
+          id: leadId,
+          company: lead.company,
+          last_contact: date,
+        };
+      } else {
+        if (
+          date &&
+          (!map[leadId].last_contact ||
+            date > map[leadId].last_contact)
+        ) {
+          map[leadId].last_contact = date;
+        }
+      }
+    });
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const result = Object.values(map)
+      .filter((l) => {
+        return (
+          !l.last_contact || l.last_contact < sevenDaysAgo
+        );
+      })
+      .slice(0, 10);
+
+    res.json(result);
 
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
   }
-
 });
 
 app.get("/dashboard/high-value", async (req, res) => {
-
   try {
+    const { data, error } = await supabase
+      .from("leads")
+      .select("id, company, amount")
+      .order("amount", { ascending: false })
+      .limit(10);
 
-    const result = await pool.query(`
-      SELECT id, company, amount
-      FROM leads
-      ORDER BY amount DESC
-      LIMIT 10
-    `);
+    if (error) throw error;
 
-    res.json(result.rows);
+    res.json(data);
 
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
   }
-
 });
 
 app.get("/dashboard/daily-collections", async (req, res) => {
   try {
 
-    const result = await pool.query(`
-      SELECT 
-        payment_date,
-        SUM(amount) as total
-      FROM payments
-      GROUP BY payment_date
-      ORDER BY payment_date
-    `);
+    const { data, error } = await supabase
+      .from("payments")
+      .select("payment_date, amount");
 
-    res.json(result.rows);
+    if (error) throw error;
+
+    const grouped = {};
+
+    data.forEach((payment) => {
+      const date = payment.payment_date;
+
+      grouped[date] =
+        (grouped[date] || 0) + Number(payment.amount || 0);
+    });
+
+    const result = Object.entries(grouped).map(([payment_date, total]) => ({
+      payment_date,
+      total,
+    }));
+
+    result.sort(
+      (a, b) =>
+        new Date(a.payment_date) - new Date(b.payment_date)
+    );
+
+    res.json(result);
 
   } catch (err) {
+
     console.error(err);
+
     res.status(500).send("Server error");
+
   }
 });
 
 app.get("/dashboard/agent-performance", async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT client_id, COUNT(*) as total_calls
-      FROM calls
-      GROUP BY client_id
-    `);
+    const { data, error } = await supabase
+      .from("calls")
+      .select("client_id");
 
-    res.json(result.rows);
+    if (error) throw error;
+
+    const grouped = {};
+
+    (data || []).forEach((call) => {
+      if (!call.client_id) return;
+
+      grouped[call.client_id] =
+        (grouped[call.client_id] || 0) + 1;
+    });
+
+    const result = Object.entries(grouped).map(
+      ([client_id, total_calls]) => ({
+        client_id,
+        total_calls,
+      })
+    );
+
+    res.json(result);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -685,94 +960,100 @@ app.get("/dashboard/agent-performance", async (req, res) => {
 });
 
 app.get("/dashboard/recovery-rate", async (req, res) => {
-
   try {
+    const { data: leadsData, error: leadsError } = await supabase
+      .from("leads")
+      .select("amount");
 
-    const totalPortfolio = await pool.query(`
-      SELECT SUM(amount) as total FROM leads
-    `);
+    if (leadsError) throw leadsError;
 
-    const totalCollected = await pool.query(`
-      SELECT SUM(amount) as collected FROM payments
-    `);
+    const { data: paymentsData, error: paymentsError } = await supabase
+      .from("payments")
+      .select("amount");
 
-    const portfolio = totalPortfolio.rows[0].total || 0;
-    const collected = totalCollected.rows[0].collected || 0;
+    if (paymentsError) throw paymentsError;
 
-    const recoveryRate = (collected / portfolio) * 100;
+    const portfolio = (leadsData || []).reduce(
+      (sum, l) => sum + Number(l.amount || 0),
+      0
+    );
+
+    const collected = (paymentsData || []).reduce(
+      (sum, p) => sum + Number(p.amount || 0),
+      0
+    );
+
+    const recoveryRate =
+      portfolio > 0 ? (collected / portfolio) * 100 : 0;
 
     res.json({
       portfolio,
       collected,
-      recoveryRate
+      recoveryRate,
     });
 
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
   }
-
 });
 
 app.post("/promise-to-pay", authenticateToken, async (req, res) => {
   const { lead_id, promised_amount, promised_date } = req.body;
 
   try {
-    const result = await pool.query(
-      `INSERT INTO promise_to_pay 
-       (lead_id, amount, promise_date, user_id)
-       VALUES ($1,$2,$3,$4)
-       RETURNING *`,
-      [lead_id, promised_amount, promised_date, req.user.id]
-    );
+    const { data, error } = await supabase
+      .from("promise_to_pay")
+      .insert([
+        {
+          lead_id,
+          amount: promised_amount,
+          promise_date: promised_date,
+          user_id: req.user.id,
+        },
+      ])
+      .select()
+      .single();
 
-    res.json(result.rows[0]);
+    if (error) throw error;
+
+    res.json(data);
+
   } catch (error) {
     console.error("Error saving PTP:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+
 app.get("/promise-to-pay/:leadId", authenticateToken, async (req, res) => {
   const { leadId } = req.params;
 
   try {
-    const result = await pool.query(
-      `SELECT 
-        id,
-        amount,
-        promise_date,
-        status,
-        created_at
-       FROM promise_to_pay
-       WHERE lead_id = $1
-       ORDER BY promise_date DESC`,
-      [leadId]
-    );
+    const { data, error } = await supabase
+      .from("promise_to_pay")
+      .select("id, amount, promise_date, status, created_at")
+      .eq("lead_id", leadId)
+      .order("promise_date", { ascending: false });
 
-    res.json(result.rows);
+    if (error) throw error;
+
+    res.json(data);
   } catch (error) {
     console.error("Error fetching PTP:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-app.get("/reports/monthly-payments",authenticateToken, async (req, res) => {
+app.get("/reports/monthly-payments", authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        DATE_TRUNC('month', payments.payment_date) AS month,
-        users.name AS user,
-        SUM(payments.amount) AS total
-      FROM payments
-      JOIN leads ON leads.id = payments.lead_id
-      JOIN users ON users.id = leads.assigned_to
-      GROUP BY month, users.name
-      ORDER BY month DESC
-    `);
+    const { data, error } = await supabase
+      .from("monthly_payments_report")
+      .select("*");
 
-    res.json(result.rows);
+    if (error) throw error;
 
+    res.json(data);
   } catch (error) {
     console.error("Error fetching monthly payments:", error);
     res.status(500).json({ error: "Server error" });
@@ -781,35 +1062,56 @@ app.get("/reports/monthly-payments",authenticateToken, async (req, res) => {
 
 app.put("/leads/payment/:id", upload.single("proof"), async (req, res) => {
   try {
-
     const { id } = req.params;
     const { amount_paid, payment_date } = req.body;
     const proof = req.file ? req.file.filename : null;
 
-    const result = await pool.query(
-      `UPDATE leads
-       SET amount_paid = COALESCE(amount_paid,0) + $1,
-           payment_date = $2,
-           payment_proof = $3
-       WHERE id = $4
-       RETURNING *`,
-      [amount_paid, payment_date, proof, id]
-    );
+    // 1. Get current lead first (needed for increment logic)
+    const { data: existingLead, error: fetchError } = await supabase
+      .from("leads")
+      .select("amount_paid")
+      .eq("id", id)
+      .single();
 
-    await pool.query(
-      `INSERT INTO payments (lead_id, amount, payment_date, notes)
-       VALUES ($1, $2, $3, $4)`,
-      [id, amount_paid, payment_date, "Payment uploaded"]
-    );
+    if (fetchError) throw fetchError;
 
-    res.json(result.rows[0]);
+    const newAmount =
+      (Number(existingLead.amount_paid) || 0) + Number(amount_paid);
 
+    // 2. Update lead
+    const { data: updatedLead, error: updateError } = await supabase
+      .from("leads")
+      .update({
+        amount_paid: newAmount,
+        payment_date,
+        payment_proof: proof,
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // 3. Insert payment record
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .insert([
+        {
+          lead_id: id,
+          amount: amount_paid,
+          payment_date,
+          notes: "Payment uploaded",
+        },
+      ]);
+
+    if (paymentError) throw paymentError;
+
+    res.json(updatedLead);
   } catch (error) {
     console.error("Payment upload error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 
 
@@ -836,33 +1138,35 @@ app.post("/leads", authenticateToken, async (req, res) => {
   } = req.body;
 
   try {
-    const result = await pool.query(
-      `INSERT INTO leads
-      (company, title, phone, mail, address, deal_stage, product, tags, interest, probability, username, next_followup, next_activity, amount, amount_paid, account_open_date, CUST_ID)
-      VALUES
-      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-      RETURNING *`,
-      [
-        company,
-        title,
-        phone,
-        mail,
-        address,
-        deal_stage,
-        product,
-        tags,
-        interest || 0,
-        probability || 0,
-        username,
-        next_followup,
-        next_activity,
-        amount || 0,
-        amount_paid || 0,
-        account_open_date || new Date(),
-        CUST_ID || null,
-      ]
-    );
-    res.status(201).json(result.rows[0]);
+    const { data, error } = await supabase
+      .from("leads")
+      .insert([
+        {
+          company,
+          title,
+          phone,
+          mail,
+          address,
+          deal_stage,
+          product,
+          tags,
+          interest: interest || 0,
+          probability: probability || 0,
+          username,
+          next_followup,
+          next_activity,
+          amount: amount || 0,
+          amount_paid: amount_paid || 0,
+          account_open_date: account_open_date || new Date(),
+          CUST_ID: CUST_ID || null,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json(data);
   } catch (err) {
     console.error("Error adding lead:", err);
     res.status(500).json({ error: "Failed to add lead" });
@@ -871,51 +1175,47 @@ app.post("/leads", authenticateToken, async (req, res) => {
 
 // Bulk upload leads from Excel
 app.post("/leads/bulk", upload.single("file"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
 
   try {
     const workbook = XLSX.readFile(req.file.path);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet);
 
-    const insertValues = rows.map((row) => [
-      row.Company || "",
-      row.Name || "",
-      row.Phone || "",
-      row.Mail || "",
-      row.Address || "",
-      row.DealStage || "",
-      row.Product || "",
-      row.Tags || "",
-      row.Interest || 0,
-      row.Probability || 0,
-      row.Username || "",
-      row.NextFollowup || "",
-      row.NextActivity || "",
-      row.Amount || 0,
-      row.AmountPaid || 0,
-      row.AccountOpenDate || new Date(),
-      row.CUST_ID || null,
-    ]);
+    const formattedRows = rows.map((row) => ({
+      company: row.Company || "",
+      title: row.Name || "",
+      phone: row.Phone || "",
+      mail: row.Mail || "",
+      address: row.Address || "",
+      deal_stage: row.DealStage || "",
+      product: row.Product || "",
+      tags: row.Tags || "",
+      interest: row.Interest || 0,
+      probability: row.Probability || 0,
+      username: row.Username || "",
+      next_followup: row.NextFollowup || null,
+      next_activity: row.NextActivity || "",
+      amount: row.Amount || 0,
+      amount_paid: row.AmountPaid || 0,
+      account_open_date: row.AccountOpenDate || new Date(),
+      CUST_ID: row.CUST_ID || null,
+    }));
 
-    const queryText = `
-      INSERT INTO leads
-      (company, title, phone, mail, address, deal_stage, product, tags, interest, probability, username, next_followup, next_activity, amount, amount_paid, account_open_date, CUST_ID)
-      VALUES
-      ${insertValues.map(
-      (_, i) =>
-        `(${Array(17)
-          .fill(0)
-          .map((__, j) => `$${i * 17 + j + 1}`)
-          .join(",")})`
-    )}
-      RETURNING *`;
+    // Supabase supports bulk insert directly
+    const { data, error } = await supabase
+      .from("leads")
+      .insert(formattedRows)
+      .select();
 
-    const flatValues = insertValues.flat();
+    if (error) throw error;
 
-    const result = await pool.query(queryText, flatValues);
-
-    res.status(201).json({ message: "Leads uploaded successfully", count: result.rowCount });
+    res.status(201).json({
+      message: "Leads uploaded successfully",
+      count: data.length,
+    });
   } catch (error) {
     console.error("Error uploading leads:", error);
     res.status(500).json({ error: "Failed to upload leads" });
@@ -931,11 +1231,22 @@ app.post("/notes", authenticateToken, async (req, res) => {
   }
 
   try {
-    const result = await pool.query(
-      "INSERT INTO notes (lead_id, content) VALUES ($1, $2) RETURNING *",
-      [lead_id, text]
-    );
-    res.status(201).json(result.rows[0]);
+    const { data, error } = await supabase
+      .from("notes")
+      .insert([
+        {
+          lead_id,
+          content: text,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.status(201).json(data);
   } catch (err) {
     console.error("Failed to save note:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -950,67 +1261,56 @@ app.post("/upload-leads", upload.single("file"), async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // 🔥 Helpers
-    const safeDate = (value) => {
-      if (!value || value === "") return null;
-      return value;
-    };
+    const safeDate = (value) =>
+      !value || value === "" ? null : value;
 
-    const toNumber = (value) => {
-      if (value === "" || value === null || value === undefined) return 0;
-      return Number(value);
-    };
+    const toNumber = (value) =>
+      value === "" || value === null || value === undefined
+        ? 0
+        : Number(value);
 
-    const toBigIntSafe = (value) => {
-      if (!value) return null;
-      return value.toString(); // safer if column is TEXT
-    };
+    const toBigIntSafe = (value) =>
+      !value ? null : value.toString();
 
+    const formatted = data.map((row) => ({
+      company: row.company || "",
+      title: row.title || "",
+      phone: row.phone || "",
+      mail: row.mail || "",
+      address: row.address || "",
+      deal_stage: row.deal_stage || "",
+      product: row.product || "",
+      tags: row.tags || "",
+      interest: toNumber(row.interest),
+      probability: toBigIntSafe(row.probability),
+      username: row.username || "",
+      next_followup: safeDate(row.next_followup),
+      next_activity: row.next_activity || "",
+      amount: toNumber(row.amount),
+      amount_paid: toNumber(row.amount_paid),
+      account_open_date: safeDate(row.account_open_date),
+      cust_id: row.CUST_ID || null,
+      id: row.id || null,
+      assigned_to: row.assigned_to || null,
+      payment_date: safeDate(row.payment_date),
+      payment_proof: row.payment_proof || null,
+    }));
+
+    // batch insert (avoid Supabase limits)
+    const chunkSize = 500;
     let success = 0;
     let failed = 0;
 
-    for (const row of data) {
-      try {
-        await pool.query(
-          `INSERT INTO leads (
-            company, title, phone, mail, address, deal_stage, product, tags,
-            interest, probability, username, next_followup, next_activity,
-            amount, amount_paid, account_open_date, cust_id, id,
-            assigned_to, payment_date, payment_proof
-          )
-          VALUES (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
-            $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21
-          )`,
-          [
-            row.company || "",
-            row.title || "",
-            row.phone || "",
-            row.mail || "",
-            row.address || "",
-            row.deal_stage || "",
-            row.product || "",
-            row.tags || "",
-            toNumber(row.interest),
-            toBigIntSafe(row.probability), // ✅ FIXED
-            row.username || "",
-            safeDate(row.next_followup),
-            row.next_activity || "",
-            toNumber(row.amount),
-            toNumber(row.amount_paid),
-            safeDate(row.account_open_date),
-            row.CUST_ID || null,
-            row.id || null,
-            row.assigned_to || null,
-            safeDate(row.payment_date), // ✅ FIXED
-            row.payment_proof || null,
-          ]
-        );
+    for (let i = 0; i < formatted.length; i += chunkSize) {
+      const chunk = formatted.slice(i, i + chunkSize);
 
-        success++;
-      } catch (err) {
-        console.error("Row failed:", row, err.message);
-        failed++;
+      const { error } = await supabase.from("leads").insert(chunk);
+
+      if (error) {
+        console.error("Batch failed:", error.message);
+        failed += chunk.length;
+      } else {
+        success += chunk.length;
       }
     }
 
@@ -1020,7 +1320,6 @@ app.post("/upload-leads", upload.single("file"), async (req, res) => {
       failed,
       total: data.length,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Upload failed" });
@@ -1031,16 +1330,31 @@ app.post("/upload-leads", upload.single("file"), async (req, res) => {
 
 // Get notes for a lead
 app.get("/notes/:leadId", async (req, res) => {
+
   const { leadId } = req.params;
+
   try {
-    const result = await pool.query(
-      "SELECT * FROM notes WHERE lead_id = $1 ORDER BY created_at ASC",
-      [leadId]
-    );
-    res.json(result.rows);
+
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
+
   } catch (err) {
+
     console.error(err);
-    res.status(500).json({ error: "Internal server error" });
+
+    res.status(500).json({
+      error: "Internal server error",
+    });
+
   }
 });
 
