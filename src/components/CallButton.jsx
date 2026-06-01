@@ -7,6 +7,7 @@ export default function CallButton({ phoneNumber, company, lead }) {
   const [status, setStatus] = useState("idle");
   const [showSms, setShowSms] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const API = import.meta.env.VITE_API_URL;
 
   const openDemandLetter = () => {
     setShowModal(true);
@@ -16,7 +17,7 @@ export default function CallButton({ phoneNumber, company, lead }) {
     try {
       setStatus("calling...");
 
-      const res = await axios.post("http://localhost:3001/make-call", {
+      const res = await axios.post(`${API}/make-call`, {
         phoneNumber,
       });
 

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+const API = import.meta.env.VITE_API_URL;
 import { useParams, useResolvedPath } from "react-router-dom";
 import CallButton from "./CallButton";
 import UploadProof from "./UploadProof";
@@ -19,7 +20,7 @@ export default function ProfileProfile() {
   const fetchLeads = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:3001/leads/${leadId}`
+        `${API}/leads/${leadId}`
       );
       console.log(response.data); // Log the response data for debugging
       console.log("Lead ID:", leadId);

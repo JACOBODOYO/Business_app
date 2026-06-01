@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+const API = import.meta.env.VITE_API_URL;
 
 export default function MonthlyCollections() {
   const [collections, setCollections] = useState([]);
@@ -10,7 +11,7 @@ export default function MonthlyCollections() {
 
   const fetchCollections = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/monthly-collections");
+      const res = await axios.get(`${API}/monthly-collections`);
       setCollections(res.data);
     } catch (error) {
       console.error("Error fetching collections", error);

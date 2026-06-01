@@ -5,13 +5,14 @@ import { Link } from "react-router-dom";
 export default function DueToday() {
   const [leads, setLeads] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const API = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchLeads = async () => {
       try {
         const token = localStorage.getItem("token");
 
-        const response = await axios.get("http://localhost:3001/leads", {
+        const response = await axios.get(`${API}/leads`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

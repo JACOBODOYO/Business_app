@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+const API = import.meta.env.VITE_API_URL;
 
 export default function ProfileAccountDetails() {
   const [leads, setLeads] = useState([]);
@@ -10,7 +11,7 @@ export default function ProfileAccountDetails() {
     const fetchLeads = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3001/leads/${leadId}`
+          `${API}/leads/${leadId}`
         );
         console.log(response.data); // Log the response data for debugging
         console.log("Lead ID:", leadId);

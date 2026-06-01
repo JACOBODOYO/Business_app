@@ -3,6 +3,7 @@ import axios from "axios";
 import DueToday from "./DueToday";
 import { Link } from "react-router-dom";
 import Profile from "./Profile";
+const API = import.meta.env.VITE_API_URL;
 
 export default function AllOpen() {
   const [leads, setLeads] = useState([]);
@@ -17,7 +18,7 @@ export default function AllOpen() {
           return;
         }
 
-        const response = await axios.get("http://localhost:3001/leads", {
+        const response = await axios.get(`${API}/leads`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

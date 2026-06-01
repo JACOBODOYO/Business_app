@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+const API = import.meta.env.VITE_API_URL;
 import axios from "axios";
 import PopupModal from "./PopupModal";
 import PopupModalActivity from "./PopupModalActivity";
@@ -23,7 +24,7 @@ export default function ProfileDetails({ leadId }) {
     if (!leadId) return;
 
     axios
-      .get(`http://localhost:3001/leads/${leadId}`)
+      .get(`${API}/leads/${leadId}`)
       .then((res) => setLead(res.data))
       .catch((err) => console.error("Failed to fetch lead:", err));
   }, [leadId]);
@@ -33,7 +34,7 @@ export default function ProfileDetails({ leadId }) {
     if (!leadId) return;
 
     axios
-      .get(`http://localhost:3001/followups/${leadId}`)
+      .get(`${API}/followups/${leadId}`)
       .then((res) => setFollowUps(res.data))
       .catch((err) => console.error("Failed to fetch follow-ups:", err));
   }, [leadId]);
@@ -45,7 +46,7 @@ export default function ProfileDetails({ leadId }) {
     }
 
     try {
-      const response = await axios.post("http://localhost:3001/followups", {
+      const response = await axios.post(`${API}/followups`, {
         lead_id: leadId,
         followup_type: data.type,
         notes: data.notes,

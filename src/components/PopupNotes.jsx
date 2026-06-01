@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import PropTypes from 'prop-types';
+const API = import.meta.env.VITE_API_URL;
 
 export default function PopupNotes({ leadId, title, onClose,onAddNotes }) {
   const [note, setNote] = useState('');
@@ -20,7 +21,7 @@ export default function PopupNotes({ leadId, title, onClose,onAddNotes }) {
       setError(null);
       
       try {
-        const response = await axios.get(`http://localhost:3001/notes`, {
+        const response = await axios.get(`${API}/notes`, {
           params: { lead_id: leadId }  // Using query parameter
         });
         setNoteList(response.data);
@@ -47,7 +48,7 @@ export default function PopupNotes({ leadId, title, onClose,onAddNotes }) {
     setError(null);
 
     try {
-      const response = await axios.post("http://localhost:3001/notes", {
+      const response = await axios.post(`${API}/notes`, {
         lead_id: leadId,  // Matching backend expectation
         text: note,
       });

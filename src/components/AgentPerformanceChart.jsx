@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+const API = import.meta.env.VITE_API_URL;
 import {
   BarChart,
   Bar,
@@ -17,7 +18,7 @@ export default function AgentPerformanceChart() {
   useEffect(() => {
 
     axios
-      .get("http://localhost:3001/dashboard/agent-performance")
+      .get(`${API}/dashboard/agent-performance`)
       .then((res) => setData(res.data));
 
   }, []);

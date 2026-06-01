@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+const API = import.meta.env.VITE_API_URL;
 
 const MonthlyPaymentReports = () => {
   const [groupedData, setGroupedData] = useState({});
@@ -12,7 +13,7 @@ const MonthlyPaymentReports = () => {
     try {
       const token = localStorage.getItem("token");
       
-      const res = await axios.get("http://localhost:3001/reports/monthly-payments",
+      const res = await axios.get(`${API}/reports/monthly-payments`,
         {
         headers: {
           Authorization: `Bearer ${token}`,

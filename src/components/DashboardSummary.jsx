@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 
 export default function DashboardSummary() {
   const [data, setData] = useState(null);
+  const API = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchSummary();
@@ -11,7 +12,7 @@ export default function DashboardSummary() {
 
   const fetchSummary = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/dashboard-summary");
+      const res = await axios.get(`${API}/dashboard-summary`);
       setData(res.data);
     } catch (err) {
       console.error("Error fetching dashboard summary", err);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+const API = import.meta.env.VITE_API_URL;
 import {
   LineChart,
   Line,
@@ -17,7 +18,7 @@ export default function DailyCollectionsChart() {
   useEffect(() => {
 
     axios
-      .get("http://localhost:3001/dashboard/daily-collections")
+      .get(`${API}/dashboard/daily-collections`)
       .then((res) => setData(res.data))
       .catch((err) => console.error(err));
 

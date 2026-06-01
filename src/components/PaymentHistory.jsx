@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+const API = import.meta.env.VITE_API_URL;
 
 export default function PaymentHistory({ leadId, refreshKey }) {
 
@@ -9,7 +10,7 @@ export default function PaymentHistory({ leadId, refreshKey }) {
     try {
 
       const res = await axios.get(
-        `http://localhost:3001/payments/${leadId}`
+        `${API}/payments/${leadId}`
       );
 
       setPayments(res.data);
