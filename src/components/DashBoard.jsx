@@ -20,6 +20,7 @@ export default function DashBoard() {
   const [userRole, setUserRole] = useState("user");
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const API = import.meta.env.VITE_API_URL;
 
  useEffect(() => {
   async function loadDashboard() {
@@ -39,7 +40,7 @@ export default function DashBoard() {
           .eq("email", user.email)
           .maybeSingle(),
 
-        axios.get("http://localhost:3001/leads", {
+        axios.get(`${API}/leads`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },
