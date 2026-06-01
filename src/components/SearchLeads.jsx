@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -13,30 +14,35 @@ export default function SearchLeads() {
   const [newClientName, setNewClientName] = useState("");
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3001/leads", {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  },
-})
-      .then((res) => {
-        const data = res.data;
+  const fetchLeads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .order("company", { ascending: true });
 
-        setLeads(data);
+      if (error) throw error;
 
-        // Extract unique companies safely
-        const uniqueClients = [
-          ...new Set(
-            data
-              .map((lead) => lead.company)
-              .filter((c) => c && c.trim() !== "")
-          ),
-        ];
+      setLeads(data);
 
-        setClients(uniqueClients);
-      })
-      .catch((err) => console.error(err));
-  }, []);
+      const uniqueClients = [
+        ...new Set(
+          data
+            .map((lead) => lead.company)
+            .filter((c) => c && c.trim() !== "")
+        ),
+      ];
+
+      setClients(uniqueClients);
+
+      console.log("Loaded leads:", data.length);
+    } catch (err) {
+      console.error("Error fetching leads:", err);
+    }
+  };
+
+  fetchLeads();
+}, []);
 
   const handleClientClick = (client) => {
   const newSelection = client === selectedClient ? null : client;
