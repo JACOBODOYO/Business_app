@@ -343,9 +343,9 @@ app.get("/leads", authenticateToken, async (req, res) => {
       .order("id", { ascending: false });
 
     // non-admin only sees assigned leads
-    if (req.user.role !== "admin") {
-      query = query.eq("cust_id", req.user.id);
-    }
+    // if (req.user.role !== "admin") {
+    //   query = query.eq("cust_id", req.user.id);
+    // }
 
     const { data, error } = await query;
 
