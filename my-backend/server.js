@@ -310,17 +310,17 @@ async function authenticateToken(req, res, next) {
     }
 
     // get role from YOUR users table (not auth table)
-    const { data: adminUser } = await supabase
+    const { data: adminUser, error: adminError } = await supabase
       .from("admin")
       .select("*")
       .eq("email", data.user.email)
-      .single();
+      .maybeSingle();
 
     req.user = {
-      id: data.user.id,
-      email: data.user.email,
-      role: adminUser ? "admin" : "user",
-    };
+  id: data.user.id,
+  email: data.user.email,
+  role: adminUser ? "admin" : "user",
+};
 
     next();
     console.log(req.user);

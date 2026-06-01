@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { supabase } from "../lib/supabase";
 import DueToday from "./DueToday";
 import { Link } from "react-router-dom";
 import Profile from "./Profile";
@@ -9,42 +10,26 @@ export default function AllOpen() {
   const [leads, setLeads] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.error("No token found. User may not be logged in.");
-          return;
-        }
+useEffect(() => {
+  const fetchLeads = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("company", { ascending: true });
 
-        const response = await axios.get(`${API}/leads`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    if (error) throw error;
 
-        // Sort by company
-        const sortedData = response.data.sort((a, b) =>
-          a.company.localeCompare(b.company)
-        );
-        setLeads(sortedData);
+    console.log("LEADS:", data);
 
-        // Filter leads due today
-        const today = new Date().toISOString().split("T")[0];
-        const normalizeDate = (dateString) => {
-          if (!dateString) return null;
-          return new Date(dateString).toISOString().split("T")[0];
-        };
-        const dueToday = sortedData.filter(
-          (lead) => normalizeDate(lead.next_followup) === today
-        );
-        
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      }
-    };
+    setLeads(data);
+  } catch (err) {
+    console.error("Error fetching leads:", err);
+  }
+};
 
-    fetchLeads();
-  }, []);
+  fetchLeads();
+}, []);
 
 
   const handleSearch = (e) => {
