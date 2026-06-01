@@ -1,17 +1,18 @@
 import { useState } from "react";
 import axios from "axios";
-const API = import.meta.env.VITE_API_URL;
 
 export default function PromiseToPay({ leadId, onSaved }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
+  const API = import.meta.env.VITE_API_URL;
+
 
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
 
       const res = await axios.post(
-        "http://localhost:3001/promise-to-pay",
+        `${API}/promise-to-pay`,
         {
           lead_id: leadId,
           promised_amount: amount,
