@@ -111,7 +111,11 @@ const Login = () => {
 
             <button
               disabled={!values.email || !values.password}
-              className="flex flex-col justify-center items-center mt-5 bg-blue-300 h-10 w-100 rounded-0 mb-2">
+              className="flex flex-col justify-center items-center mt-5 bg-blue-300 h-10 w-100 rounded-0 mb-2 transition-all duration-150
+    active:scale-95
+    active:opacity-80
+    active:translate-y-[1px]
+    cursor-pointer">
               Log in
             </button>
           </div>

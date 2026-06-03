@@ -10,26 +10,26 @@ export default function AllOpen() {
   const [leads, setLeads] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-useEffect(() => {
-  const fetchLeads = async () => {
-  try {
-    const { data, error } = await supabase
-      .from("leads")
-      .select("*")
-      .order("company", { ascending: true });
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("leads")
+          .select("*")
+          .order("company", { ascending: true });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    console.log("LEADS:", data);
+        console.log("LEADS:", data);
 
-    setLeads(data);
-  } catch (err) {
-    console.error("Error fetching leads:", err);
-  }
-};
+        setLeads(data);
+      } catch (err) {
+        console.error("Error fetching leads:", err);
+      }
+    };
 
-  fetchLeads();
-}, []);
+    fetchLeads();
+  }, []);
 
 
   const handleSearch = (e) => {
@@ -77,63 +77,62 @@ useEffect(() => {
         />
       </div>
 
-      <div className="h-96 overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200 h-100 w-100">
-          <thead className="bg-blue-500 text-white">
-            <tr>
-              <th className="hidden px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                #
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Company
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wwider">
-                Phone
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Mail
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Address
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Deal Stage
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Product
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Tags
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Interest
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Probability
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Username
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Next Followup
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Next Activity
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Amount Paid
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Balance
-              </th>
-            </tr>
-          </thead>
+      <div className="overflow-x-auto">
+        <table className="min-w-[1200px] divide-y divide-gray-200">          <thead className="bg-blue-500 text-white">
+          <tr>
+            <th className="hidden px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              #
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Company
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Title
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wwider">
+              Phone
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Mail
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Address
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Deal Stage
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Product
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Tags
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Interest
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Probability
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Username
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Next Followup
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Next Activity
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Amount
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Amount Paid
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              Balance
+            </th>
+          </tr>
+        </thead>
 
           <tbody className="divide-y divide-gray-200">
             {filteredLeads.map((lead) => (

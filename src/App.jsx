@@ -1,4 +1,4 @@
-import { HashRouter  as Router, Route, Routes, useLocation } from "react-router-dom";
+import { HashRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import Header from "./components/Header";
 import SideBar from "./components/SideBar";
 import DashBoard from "./components/DashBoard";
@@ -19,7 +19,12 @@ function AppContent() {
   return (
     <div className="flex h-screen">
       {!isLoginPage && <SideBar />}
-      <div className={`flex-1 ${!isLoginPage ? "ml-[13.6667%] mt-0 pl-4 w-[85.333%]" : ""}`}>
+      <div
+        className={`flex-1 ${!isLoginPage
+            ? "md:ml-64 p-2 md:p-4"
+            : ""
+          }`}
+      >
         {/* {!isLoginPage && <Header />} */}
         <Routes >
           <Route path="/" element={<Login />} />
@@ -31,9 +36,9 @@ function AppContent() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/all-open" element={<AllOpen />}></Route>
           <Route path="/due-today" element={<DueToday />}></Route>
-          
+
           <Route path="/profile/:leadId" element={<Profile />} />
-          
+
 
         </Routes>
       </div>

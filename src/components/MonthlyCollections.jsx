@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+
 const API = import.meta.env.VITE_API_URL;
 
 export default function MonthlyCollections() {
@@ -19,38 +20,49 @@ export default function MonthlyCollections() {
   };
 
   return (
-    <div className="px-4 py-6 sm:px-0 ">
-      <div className="bg-white rounded-[10px] m-5 h-auto pb-6 border-b-4 border-blue-400">
-        <div className="flex flex-row mt-5 ml-5">
-          <p className="mr-4 font-semibold">MONTHLY COLLECTIONS</p>
-          <p className="text-blue-600 hover:text-blue-800 cursor-pointer">
+    <div className="px-2 sm:px-4 py-4">
+      <div className="bg-white rounded-xl shadow border-b-4 border-blue-400 p-4">
+        
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h2 className="font-semibold text-lg">
+            MONTHLY COLLECTIONS
+          </h2>
+
+          <button className="text-blue-600 hover:text-blue-800 text-sm">
             Show details
-          </p>
+          </button>
         </div>
 
-        <table className="ml-7 mt-8 w-2/3 border">
-          <thead>
-            <tr>
-              <th className="border bg-gray-300 h-12 pl-4 text-start">
-                USERS
-              </th>
-              <th className="border bg-gray-300 h-12 pl-4 text-start">
-                AMOUNT COLLECTED
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {collections.map((item, index) => (
-              <tr key={index} className="border">
-                <td className="pl-4 py-2">{item.name}</td>
-                <td className="pl-4 py-2">
-                  {Number(item.total_collected).toLocaleString()}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[400px] border">
+            <thead>
+              <tr>
+                <th className="border bg-gray-300 p-3 text-left">
+                  USERS
+                </th>
+                <th className="border bg-gray-300 p-3 text-left">
+                  AMOUNT COLLECTED
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {collections.map((item, index) => (
+                <tr key={index}>
+                  <td className="border p-3">
+                    {item.name}
+                  </td>
+
+                  <td className="border p-3">
+                    KES{" "}
+                    {Number(item.total_collected).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
       </div>
     </div>
   );

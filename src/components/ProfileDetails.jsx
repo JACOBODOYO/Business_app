@@ -67,8 +67,7 @@ export default function ProfileDetails({ leadId }) {
 
   return (
     <div className="rounded-lg gap-4">
-      <div className="grid grid-cols-2 gap-4 m-3">
-        {/* FollowUp Component */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">        {/* FollowUp Component */}
         <FollowUp addFollowUp={addFollowUp} />
 
         {/* Promise to Pay */}

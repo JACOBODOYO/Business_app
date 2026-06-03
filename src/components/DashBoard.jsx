@@ -98,29 +98,28 @@ export default function DashBoard() {
   if (leads.length === 0) return <div>No accounts assigned</div>;
 
   return (
-    <div className="overflow-auto h-full pl-4 pr-4 ">
+    <div className="min-h-screen overflow-x-hidden px-2 sm:px-4 md:px-6">
       <header className="bg-blue-100 shadow mb-4">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         </div>
       </header>
       <main className="max-w-7xl mx-auto bg-blue-200">
-        <div className="grid grid-cols-1  sm:grid-cols-2 lg:grid-cols-4   mb-6">
-          <Link
-            to="/leads-management"
-            className="text-black mt-auto self-center"
-          >
-            <div className=" rounded-[10px] m-4 h-40 p-6 bg-white flex flex-col justify-between border-b-4 border-b-blue-300">
-              <p className="text-black">Total Accounts Allocation:</p>
-              <p className="text-black text-4xl text-bold">{leads.length}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">          <Link
+          to="/leads-management"
+          className="text-black mt-auto self-center"
+        >
+          <div className="rounded-lg p-4 sm:p-6 bg-white min-h-[140px] flex flex-col justify-between border-b-4 border-b-blue-300">
+            <p className="text-black">Total Accounts Allocation:</p>
+            <p className="text-black text-4xl text-bold">{leads.length}</p>
 
-            </div>
-          </Link>
+          </div>
+        </Link>
           <Link
             to="/leads-management"
             className="text-black mt-auto self-center"
           >
-            <div className="rounded-[10px] m-4 h-40 p-6 bg-white flex flex-col justify-between border-b-4 border-b-blue-300">
+            <div className="rounded-lg p-4 sm:p-6 bg-white min-h-[140px] flex flex-col justify-between border-b-4 border-b-blue-300">
               <p className="text-black text-size=3">Total Value of Accounts</p>
               <p className="text-black text-3xl text-bold">{leads
                 .reduce((acc, lead) => acc + Number(lead.amount), 0)
@@ -135,9 +134,9 @@ export default function DashBoard() {
             to="/won"
             className="text-white mt-auto self-center"
           >
-            <div className="rounded-[10px] m-4 h-40 p-6 bg-white flex flex-col justify-between border-b-4 border-b-blue-300">
+            <div className="rounded-lg p-4 sm:p-6 bg-white min-h-[140px] flex flex-col justify-between border-b-4 border-b-blue-300">
               <p className="text-black">Amount Paid to date</p>
-              <p className="text-black text-4xl">
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold break-words">
                 Ksh {leads
                   .reduce((acc, lead) => acc + Number(lead.amount_paid), 0)
                   .toLocaleString()}
@@ -148,7 +147,7 @@ export default function DashBoard() {
             to="won"
             className="text-white mt-auto self-center"
           >
-            <div className="rounded-[10px] m-4 h-40 p-6 bg-white flex flex-col justify-between border-b-4 border-b-blue-300">
+            <div className="rounded-lg p-4 sm:p-6 bg-white min-h-[140px] flex flex-col justify-between border-b-4 border-b-blue-300">
               <p className="text-black">Total number of debtors that have Paid</p>
               <p className="text-black text-4xl"> {leads.filter(lead => lead.amount_paid > 0).length}
               </p>
@@ -166,8 +165,7 @@ export default function DashBoard() {
 
 
           <SmartDashboard />
-          <div className="grid grid-cols-2 gap-6 m-4 pb-4">
-            <DailyCollectionsChart />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">            <DailyCollectionsChart />
             <AgentPerformanceChart />
             <RecoveryRate />
             <UploadLeads />
