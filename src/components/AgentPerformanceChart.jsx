@@ -16,12 +16,17 @@ export default function AgentPerformanceChart() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-
-    axios
-      .get(`${API}/dashboard/agent-performance`)
-      .then((res) => setData(res.data));
-
-  }, []);
+  axios
+    .get(`${API}/dashboard/agent-performance`)
+    .then((res) => {
+      console.log("Agent Performance Data:", res.data);
+      setData(res.data);
+    })
+    .catch((err) => {
+      console.error("Agent Performance Error:", err);
+      console.error("Response:", err.response?.data);
+    });
+}, []);
 
   return (
 

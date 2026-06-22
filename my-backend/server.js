@@ -1113,6 +1113,28 @@ app.put("/leads/payment/:id", upload.single("proof"), async (req, res) => {
   }
 });
 
+app.put("/leads/:id", async (req, res) => {
+  const { id } = req.params;
+  const { next_followup } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("leads")
+      .update({ next_followup })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Update failed" });
+  }
+});
+
 
 
 // Add a single lead

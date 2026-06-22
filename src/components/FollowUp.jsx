@@ -1,33 +1,21 @@
 import React, { useState } from "react";
+const API = import.meta.env.VITE_API_URL;
 
-export default function FollowUp({ addFollowUp }) {
+export default function FollowUp({ leadsId, addFollowUp }) {
   const [followUpStage, setFollowUpStage] = useState("");
   const [followUpNotes, setFollowUpNotes] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
 
-  const handleSubmitFollowUp = async () => {
-    if (!followUpStage || !followUpDate || !followUpNotes) {
-      alert("Please fill all fields");
-      return;
-    }
 
+
+  const handleSubmitFollowUp = async () => {
     const newFollowUp = {
       type: followUpStage,
       notes: followUpNotes,
       date: followUpDate,
     };
 
-    try {
-      await addFollowUp(newFollowUp);
-
-      // Clear inputs after successful submission
-      setFollowUpStage("");
-      setFollowUpNotes("");
-      setFollowUpDate("");
-    } catch (err) {
-      console.error("Failed to add follow-up:", err);
-      alert("Failed to add follow-up. Please try again.");
-    }
+    await addFollowUp(newFollowUp);
   };
 
   return (
@@ -82,7 +70,12 @@ export default function FollowUp({ addFollowUp }) {
 
       <button
         onClick={handleSubmitFollowUp}
-        className="bg-blue-600 p-3 text-white rounded-[10px] hover:bg-blue-700"
+        className="bg-blue-600 p-3 text-white rounded-[10px] hover:bg-blue-700
+    transition-all duration-150
+    active:scale-95
+    active:opacity-80
+    active:translate-y-[1px]
+    cursor-pointer"
       >
         Submit Follow-up
       </button>

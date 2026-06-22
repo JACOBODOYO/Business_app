@@ -130,17 +130,20 @@ export default function DashBoard() {
 
             </div>
           </Link>
-          <Link
-            to="/won"
-            className="text-white mt-auto self-center"
-          >
-            <div className="rounded-lg p-4 sm:p-6 bg-white min-h-[140px] flex flex-col justify-between border-b-4 border-b-blue-300">
-              <p className="text-black">Amount Paid to date</p>
-              <p className="text-xl sm:text-2xl lg:text-3xl font-bold break-words">
-                Ksh {leads
-                  .reduce((acc, lead) => acc + Number(lead.amount_paid), 0)
-                  .toLocaleString()}
+          <Link to="/won" className="block">
+            <div className="rounded-lg p-4 sm:p-6 bg-white min-h-[140px] flex flex-col justify-between border-b-4 border-b-blue-300 w-full">
+
+              <p className="text-black text-sm sm:text-base">
+                Amount Paid to date
               </p>
+
+              <p className="text-black text-xl sm:text-2xl lg:text-3xl font-bold">
+                Ksh{" "}
+                {leads
+                  .reduce((acc, lead) => acc + Number(lead.amount_paid || 0), 0)
+                  .toLocaleString("en-KE")}
+              </p>
+
             </div>
           </Link>
           <Link
@@ -155,7 +158,7 @@ export default function DashBoard() {
             </div>
           </Link>
         </div>
-        <DailyReport />
+        
         <TopCollectors />
         <ActivityTimeline />
         {userRole === "admin" && (<>

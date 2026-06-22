@@ -5,7 +5,9 @@ import { Link } from "react-router-dom";
 export default function DueToday() {
   const [leads, setLeads] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [entries, setEntries] = useState(10);
   const API = import.meta.env.VITE_API_URL;
+
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -20,12 +22,12 @@ export default function DueToday() {
 
         const normalizeDate = (dateString) => {
           if (!dateString) return null;
-          return new Date(dateString).toISOString().split("T")[0];
+          return dateString.split("T")[0];
         };
 
         const dueToday = response.data.filter(
-  (lead) => lead.next_followup === today
-);
+          (lead) => normalizeDate(lead.next_followup) === today
+        );
 
         const sorted = dueToday.sort((a, b) =>
           a.company.localeCompare(b.company)
@@ -46,8 +48,14 @@ export default function DueToday() {
 
   const filteredLeads = leads.filter((lead) => {
     const regex = new RegExp(searchTerm, "i");
-    return Object.values(lead).some((value) => regex.test(value));
+
+    return Object.values(lead).some((value) =>
+      regex.test(String(value ?? ""))
+    );
   });
+
+    const displayedLeads = filteredLeads.slice(0, entries);
+
 
   return (
     <div>
@@ -66,16 +74,16 @@ export default function DueToday() {
 
       <hr className="border-t-2 border-gray-300 my-4" />
 
-      <p>
-        Show{" "}
-        <select className="border">
-          <option>10</option>
-          <option>25</option>
-          <option>50</option>
-          <option>100</option>
-        </select>{" "}
-        entries
-      </p>
+      <select
+        className="border mb-4"
+        value={entries}
+        onChange={(e) => setEntries(Number(e.target.value))}
+      >
+        <option value={10}>10</option>
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+      </select>
 
       <div className="flex justify-end mb-4">
         <p className="mr-2">Search</p>
@@ -113,7 +121,7 @@ export default function DueToday() {
           </thead>
 
           <tbody className="divide-y divide-gray-200">
-            {filteredLeads.map((lead) => (
+            {displayedLeads.map((lead) => (
               <tr key={lead.id} className="hover:bg-gray-200">
 
                 <td className="hidden px-6 py-4">{lead.id}</td>
@@ -148,9 +156,19 @@ export default function DueToday() {
 
                 <td className="px-6 py-4">{lead.next_activity}</td>
 
-                <td className="px-6 py-4">{lead.amount}</td>
+                <td className="px-6 py-4">
+                  {Number(lead.amount).toLocaleString("en-KE", {
+                    style: "currency",
+                    currency: "KES",
+                  })}
+                </td>
 
-                <td className="px-6 py-4">{lead.amount_paid}</td>
+                <td className="px-6 py-4">
+                  {Number(lead.amount_paid).toLocaleString("en-KE", {
+                    style: "currency",
+                    currency: "KES",
+                  })}
+                </td>
 
                 <td className="px-6 py-4">
                   {lead.amount - lead.amount_paid}

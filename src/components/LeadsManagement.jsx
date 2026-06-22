@@ -12,21 +12,36 @@ const LeadsManagement = () => {
       <div className="flex flex-wrap gap-2 md:gap-4 mb-4">
         <button
           onClick={() => setView("dueToday")}
-          className="px-4 py-2 border-2 rounded-lg text-blue-600 hover:bg-blue-50"
+          className="px-4 py-2 border-2 rounded-lg text-blue-600 hover:bg-blue-50 hover:bg-purple-800
+transition-all duration-150
+active:scale-95
+active:opacity-80
+active:translate-y-[1px]
+cursor-pointer"
         >
           Due Today
         </button>
 
         <button
           onClick={() => setView("all")}
-          className="px-4 py-2 border-2 rounded-lg text-blue-600 hover:bg-blue-50"
+          className="px-4 py-2 border-2 rounded-lg text-blue-600 hover:bg-blue-50 hover:bg-purple-800
+transition-all duration-150
+active:scale-95
+active:opacity-80
+active:translate-y-[1px]
+cursor-pointer"
         >
           All Open Leads
         </button>
 
         <button
           onClick={() => setView("overdue")}
-          className="px-4 py-2 border-2 rounded-lg text-blue-600 hover:bg-blue-50"
+          className="px-4 py-2 border-2 rounded-lg text-blue-600 hover:bg-blue-50 hover:bg-purple-800
+transition-all duration-150
+active:scale-95
+active:opacity-80
+active:translate-y-[1px]
+cursor-pointer"
         >
           Overdue
         </button>
