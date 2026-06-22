@@ -127,7 +127,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.post("/users", authenticateToken, async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, } = req.body;
 
     // Create auth user
     const { data: authData, error: authError } =
@@ -152,6 +152,7 @@ app.post("/users", authenticateToken, async (req, res) => {
           name,
           email,
           role,
+          tenant_id: req.user.tenant_id,
         },
       ])
       .select()
@@ -298,35 +299,52 @@ async function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      return res.status(401).json({ error: "No token provided" });
+      return res.status(401).json({
+        error: "No token provided",
+      });
     }
 
     const token = authHeader.split(" ")[1];
 
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } =
+      await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      return res.status(403).json({ error: "Invalid token" });
+      return res.status(403).json({
+        error: "Invalid token",
+      });
     }
 
-    // get role from YOUR users table (not auth table)
-    const { data: adminUser, error: adminError } = await supabase
-      .from("admin")
-      .select("*")
-      .eq("email", data.user.email)
-      .maybeSingle();
+    const { data: userProfile, error: profileError } =
+      await supabase
+        .from("users")
+        .select("id, role, tenant_id")
+        .eq("auth_id", data.user.id)
+        .single();
+
+    if (profileError || !userProfile) {
+      return res.status(403).json({
+        error: "User profile not found",
+      });
+    }
 
     req.user = {
-  id: data.user.id,
-  email: data.user.email,
-  role: adminUser ? "admin" : "user",
-};
+      id: userProfile.id,
+      email: data.user.email,
+      role: userProfile.role,
+      tenant_id: userProfile.tenant_id,
+    };
+
+    console.log("Authenticated user:", req.user);
 
     next();
-    console.log(req.user);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Authentication failed" });
+
+    res.status(500).json({
+      error: "Authentication failed",
+    });
   }
 }
 
@@ -340,12 +358,10 @@ app.get("/leads", authenticateToken, async (req, res) => {
     let query = supabase
       .from("leads")
       .select("*")
-      .order("id", { ascending: false });
+      .order("id", { ascending: false })
+      .eq("tenant_id", req.user.tenant_id);
 
-    // non-admin only sees assigned leads
-    // if (req.user.role !== "admin") {
-    //   query = query.eq("cust_id", req.user.id);
-    // }
+   
 
     const { data, error } = await query;
 
