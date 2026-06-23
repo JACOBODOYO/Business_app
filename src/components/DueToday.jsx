@@ -12,9 +12,13 @@ export default function DueToday() {
   useEffect(() => {
     const fetchLeads = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        const response = await axios.get(`${API}/leads`, {
+
+
+        const response = await axios.get(`${API}/leads/due-today`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -54,7 +58,7 @@ export default function DueToday() {
     );
   });
 
-    const displayedLeads = filteredLeads.slice(0, entries);
+  const displayedLeads = filteredLeads.slice(0, entries);
 
 
   return (
@@ -171,7 +175,13 @@ export default function DueToday() {
                 </td>
 
                 <td className="px-6 py-4">
-                  {lead.amount - lead.amount_paid}
+                  {(
+                    Number(lead.amount || 0) -
+                    Number(lead.amount_paid || 0)
+                  ).toLocaleString("en-KE", {
+                    style: "currency",
+                    currency: "KES",
+                  })}
                 </td>
 
               </tr>

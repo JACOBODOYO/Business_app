@@ -16,12 +16,18 @@ export default function SearchLeads() {
   useEffect(() => {
   const fetchLeads = async () => {
     try {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("*")
-        .order("company", { ascending: true });
+      const token = localStorage.getItem("token");
 
-      if (error) throw error;
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/leads`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = response.data;
 
       setLeads(data);
 
@@ -35,7 +41,6 @@ export default function SearchLeads() {
 
       setClients(uniqueClients);
 
-      console.log("Loaded leads:", data.length);
     } catch (err) {
       console.error("Error fetching leads:", err);
     }

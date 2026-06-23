@@ -6,27 +6,45 @@ export default function Overdue() {
   const [leads, setLeads] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    const fetchOverdueLeads = async () => {
-      try {
-        const today = new Date().toISOString().split("T")[0];
+ useEffect(() => {
+  const fetchOverdueLeads = async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        const { data, error } = await supabase
-          .from("leads")
-          .select("*")
-          .lt("next_followup", today) // overdue only
-          .order("next_followup", { ascending: true });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/leads`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
 
-        if (error) throw error;
+      const leads = await response.json();
 
-        setLeads(data || []);
-      } catch (err) {
-        console.error("Error fetching overdue leads:", err);
+      if (!response.ok) {
+        throw new Error(leads.error);
       }
-    };
 
-    fetchOverdueLeads();
-  }, []);
+      const today = new Date().toISOString().split("T")[0];
+
+      const overdueLeads = leads.filter(
+        (lead) =>
+          lead.next_followup &&
+          lead.next_followup < today
+      );
+
+      setLeads(overdueLeads);
+
+    } catch (err) {
+      console.error("Error fetching overdue leads:", err);
+    }
+  };
+
+  fetchOverdueLeads();
+}, []);
 
   const filteredLeads = leads.filter((lead) => {
     const regex = new RegExp(searchTerm, "i");

@@ -415,6 +415,29 @@ app.get("/leads/:leadId", async (req, res) => {
   }
 });
 
+app.get("/leads/due-today", authenticateToken, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("tenant_id", req.user.tenant_id)
+      .eq("next_followup", today)
+      .order("company", { ascending: true });
+
+    if (error) throw error;
+
+    res.json(data);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to fetch due today leads",
+    });
+  }
+});
+
 app.get("/followups/:lead_id",authenticateToken, async (req, res) => {
   const { lead_id } = req.params;
 
