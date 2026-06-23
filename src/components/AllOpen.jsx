@@ -11,25 +11,34 @@ export default function AllOpen() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("leads")
-          .select("*")
-          .order("company", { ascending: true });
+  const fetchLeads = async () => {
+    try {
 
-        if (error) throw error;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        console.log("LEADS:", data);
+      const response = await axios.get(
+        `${API}/leads`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
 
-        setLeads(data);
-      } catch (err) {
-        console.error("Error fetching leads:", err);
-      }
-    };
+      console.log("TENANT FILTERED LEADS:", response.data);
 
-    fetchLeads();
-  }, []);
+      setLeads(response.data);
+
+    } catch (err) {
+      console.error("Error fetching leads:", err);
+    }
+  };
+
+  fetchLeads();
+
+}, []);
 
 
   const handleSearch = (e) => {
