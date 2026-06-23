@@ -54,6 +54,7 @@ app.use(
       "http://localhost:5173",
       "https://jacobodoyo.github.io",
       "https://jacobodoyo.github.io/Business_app",
+      "https://business-app-pvy8.vercel.app",
       "https://business-app-pvy8-git-main-jacobodoyos-projects.vercel.app",
       //"https://business-app-lac.vercel.app",
     ],
