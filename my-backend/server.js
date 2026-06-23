@@ -177,7 +177,7 @@ app.post("/users", authenticateToken, async (req, res) => {
 });
 
 
-app.post("/followups", async (req, res) => {
+app.post("/followups",authenticateToken, async (req, res) => {
   const { lead_id, followup_type, notes, next_action_date } = req.body;
 
   try {
@@ -189,6 +189,7 @@ app.post("/followups", async (req, res) => {
           followup_type,
           notes,
           next_action_date,
+          tenant_id: req.user.tenant_id,
         },
       ])
       .select()
@@ -414,7 +415,7 @@ app.get("/leads/:leadId", async (req, res) => {
   }
 });
 
-app.get("/followups/:lead_id", async (req, res) => {
+app.get("/followups/:lead_id",authenticateToken, async (req, res) => {
   const { lead_id } = req.params;
 
   try {
@@ -423,6 +424,7 @@ app.get("/followups/:lead_id", async (req, res) => {
       .from("followups")
       .select("*")
       .eq("lead_id", lead_id)
+      .eq("tenant_id", req.user.tenant_id)
       .order("created_at", { ascending: false });
 
     if (error) {

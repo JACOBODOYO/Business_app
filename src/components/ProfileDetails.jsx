@@ -46,14 +46,25 @@ export default function ProfileDetails({ leadId }) {
     if (!leadId) return;
 
     const fetchFollowUps = async () => {
-      const { data, error } = await supabase
-        .from("followups")
-        .select("*")
-        .eq("lead_id", leadId)
-        .order("created_at", { ascending: false });
+      const token = localStorage.getItem("token");
 
-      if (error) console.error("Followups fetch error:", error);
-      else setFollowUps(data);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/followups/${leadId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.error);
+        return;
+      }
+
+      setFollowUps(data);
     };
 
     fetchFollowUps();
@@ -63,50 +74,69 @@ export default function ProfileDetails({ leadId }) {
   // ADD FOLLOWUP + UPDATE LEAD
   // =========================
   const addFollowUp = async (data) => {
-    try {
-      // 1. insert followup
-      const { error: followErr } = await supabase.from("followups").insert([
-        {
+  try {
+    const token = localStorage.getItem("token");
+
+    // Insert followup
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/followups`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           lead_id: leadId,
           followup_type: data.type,
           notes: data.notes,
           next_action_date: data.date,
-        },
-      ]);
+        }),
+      }
+    );
 
-      if (followErr) throw followErr;
+    const result = await response.json();
 
-      // 2. update lead next_followup
-      const { error: leadErr } = await supabase
-        .from("leads")
-        .update({
-          next_followup: data.date,
-        })
-        .eq("id", leadId);
-
-      if (leadErr) throw leadErr;
-
-      // 3. refresh lead
-      const { data: updatedLead } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("id", leadId)
-        .single();
-
-      setLead(updatedLead);
-
-      // 4. refresh followups
-      const { data: updatedFollowups } = await supabase
-        .from("followups")
-        .select("*")
-        .eq("lead_id", leadId)
-        .order("created_at", { ascending: false });
-
-      setFollowUps(updatedFollowups);
-    } catch (err) {
-      console.error("FollowUp error:", err);
+    if (!response.ok) {
+      throw new Error(result.error);
     }
-  };
+
+    // Update lead
+    const { error: leadErr } = await supabase
+      .from("leads")
+      .update({
+        next_followup: data.date,
+      })
+      .eq("id", leadId);
+
+    if (leadErr) throw leadErr;
+
+    // Refresh lead
+    const { data: updatedLead } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("id", leadId)
+      .single();
+
+    setLead(updatedLead);
+
+    // Refresh followups
+    const followupResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/followups/${leadId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const updatedFollowups = await followupResponse.json();
+
+    setFollowUps(updatedFollowups);
+  } catch (err) {
+    console.error("FollowUp error:", err);
+  }
+};
 
   // =========================
   // UI HELPERS
