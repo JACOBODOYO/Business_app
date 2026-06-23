@@ -16,6 +16,10 @@ export default function FollowUp({ leadsId, addFollowUp }) {
     };
 
     await addFollowUp(newFollowUp);
+
+    setFollowUpStage("");
+    setFollowUpNotes("");
+    setFollowUpDate("");
   };
 
   return (
